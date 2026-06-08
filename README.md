@@ -1,5 +1,5 @@
-<p align="right">
-  <strong>简体中文</strong> · <a href="./README.en.md">English</a>
+<p align="center">
+  <strong>简体中文</strong> · <a href="https://github.com/milusvip/DS-Monitor/blob/main/README.en.md">English</a>
 </p>
 
 <div align="center">
@@ -20,22 +20,10 @@
 
 <br />
 
-> **免责声明**：本项目为第三方开源工具，与 DeepSeek 官方无关联，不由 DeepSeek 维护或背书。使用本软件即表示你自行承担 API 调用与账户安全相关风险。
+Windows 轻量级桌面监控工具，常驻系统托盘。  
+实时掌握 **DeepSeek API** 余额与 Token 消耗，同步平台用量，一键查看趋势与 AI 分析报告。
 
 </div>
-
-<br />
-
-## 目录
-
-- [功能亮点](#功能亮点)
-- [界面预览](#界面预览)
-- [快速开始](#快速开始)
-- [使用指南](#使用指南)
-- [开发与构建](#开发与构建)
-- [隐私说明](#隐私说明)
-- [开源与贡献](#开源与贡献)
-- [支持作者](#支持作者可选)
 
 ---
 
@@ -199,6 +187,12 @@ pnpm build
 | <img src="src/assets/image/wx.jpg" alt="微信赞赏" width="200" /> | <img src="src/assets/image/zfb.jpg" alt="支付宝赞赏" width="200" /> |
 
 </p>
+
+---
+
+## 免责声明
+
+本项目为**第三方开源工具**，与 DeepSeek 官方无关联，不由 DeepSeek 维护或背书。使用本软件即表示你自行承担 API 调用与账户安全相关风险。
 
 ---
 

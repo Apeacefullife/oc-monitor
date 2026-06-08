@@ -1,5 +1,5 @@
-<p align="right">
-  <a href="./README.md">简体中文</a> · <strong>English</strong>
+<p align="center">
+  <a href="https://github.com/milusvip/DS-Monitor/blob/main/README.md">简体中文</a> · <strong>English</strong>
 </p>
 
 <div align="center">
@@ -20,22 +20,10 @@ Real-time balance · Token usage · Cost trends · Platform sync · AI insights
 
 <br />
 
-> **Disclaimer:** This is an independent open-source project. It is not affiliated with, endorsed by, or maintained by DeepSeek. You use this software at your own risk regarding API usage and account security.
+A lightweight Windows desktop app that lives in the system tray.  
+Track **DeepSeek API** balance and token usage in real time, sync platform data, and view trends plus AI analysis reports.
 
 </div>
-
-<br />
-
-## Contents
-
-- [Features](#features)
-- [Screenshots](#screenshots)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Development](#development)
-- [Privacy](#privacy)
-- [Contributing](#contributing)
-- [Support the Author](#support-the-author-optional)
 
 ---
 
@@ -199,6 +187,12 @@ If DS-Monitor helps you, voluntary tips are appreciated.
 | <img src="src/assets/image/wx.jpg" alt="WeChat tip" width="200" /> | <img src="src/assets/image/zfb.jpg" alt="Alipay tip" width="200" /> |
 
 </p>
+
+---
+
+## Disclaimer
+
+This is an **independent open-source project**. It is not affiliated with, endorsed by, or maintained by DeepSeek. You use this software at your own risk regarding API usage and account security.
 
 ---
 
