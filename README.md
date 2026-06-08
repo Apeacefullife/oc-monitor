@@ -1,8 +1,6 @@
 <p align="center">
-  <a href="#readme-zh"><strong>简体中文</strong></a> · <a href="#readme-en">English</a>
+  <a href="#ds-monitor"><strong>简体中文</strong></a> · <a href="#english">English</a>
 </p>
-
-<a id="readme-zh"></a>
 
 <div align="center">
 
@@ -196,13 +194,9 @@ pnpm build
 
 本项目为**第三方开源工具**，与 DeepSeek 官方无关联，不由 DeepSeek 维护或背书。使用本软件即表示你自行承担 API 调用与账户安全相关风险。
 
-<br />
+---
 
-<p align="center">
-  <a href="#readme-zh">简体中文</a> · <a href="#readme-en"><strong>English</strong></a>
-</p>
-
-<a id="readme-en"></a>
+## English
 
 <div align="center">
 
