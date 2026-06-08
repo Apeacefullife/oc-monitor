@@ -22,10 +22,6 @@ Real-time balance · Token usage · Cost trends · Platform sync · AI insights
 
 > **Disclaimer:** This is an independent open-source project. It is not affiliated with, endorsed by, or maintained by DeepSeek. You use this software at your own risk regarding API usage and account security.
 
-<br />
-
-<img src="docs/screenshots/01-main.png" alt="DS-Monitor main dashboard" width="720" />
-
 </div>
 
 <br />
@@ -58,48 +54,50 @@ Real-time balance · Token usage · Cost trends · Platform sync · AI insights
 
 ## Screenshots
 
-### Main dashboard
-
-Your daily overview: balance, spend, model usage, and trends in one place.
-
 <p align="center">
-  <img src="docs/screenshots/01-main.png" alt="Main dashboard" width="360" />
-</p>
-
-Hover over a bar in the **usage trend** chart at the bottom to see token breakdown and cost for that day.
-
-<p align="center">
-  <img src="docs/screenshots/05-trend-tooltip.png" alt="Trend chart tooltip" width="360" />
-</p>
-
----
-
-### Settings
-
-Open from the ⚙️ icon in the top-right. Manage API Key, platform login, refresh interval, auto-start, language, and GitHub repo link.
-
-<p align="center">
-  <img src="docs/screenshots/02-settings.png" alt="Settings" width="640" />
-</p>
-
----
-
-### AI analysis
-
-Open from the ✨ icon. The window expands to the right with hit rates, charts, and usage summary.
-
-<table align="center">
-  <tr>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/03-analysis.png" alt="AI analysis - charts" width="100%" />
-      <br /><sub>Charts & metrics</sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/04-analysis-report.png" alt="AI analysis - report" width="100%" />
-      <br /><sub>AI usage report (click refresh to generate)</sub>
-    </td>
-  </tr>
+<table>
+<tr><td align="center">
+<table border="1" cellpadding="16" cellspacing="0">
+<tr>
+<td align="center" valign="top" width="50%">
+<b>Dashboard</b><br />
+<sub>Balance · spend · models · trends</sub><br /><br />
+<img src="docs/screenshots/01-main.png" alt="Main dashboard" width="320" />
+</td>
+<td align="center" valign="top" width="50%">
+<b>Trend tooltip</b><br />
+<sub>Hover bars for token breakdown</sub><br /><br />
+<img src="docs/screenshots/05-trend-tooltip.gif" alt="Trend chart tooltip" width="320" />
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<b>Settings</b><br />
+<sub>API Key · refresh · auto-start</sub><br /><br />
+<img src="docs/screenshots/02-settings.png" alt="Settings" width="320" />
+</td>
+<td align="center" valign="top" width="50%">
+<b>AI analysis</b><br />
+<sub>Hit rate · cache mix · charts</sub><br /><br />
+<img src="docs/screenshots/03-analysis.png" alt="AI analysis" width="320" />
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<b>AI report</b><br />
+<sub>One-click usage summary</sub><br /><br />
+<img src="docs/screenshots/04-analysis-report.png" alt="AI report" width="320" />
+</td>
+<td align="center" valign="top" width="50%">
+<b>Context menu</b><br />
+<sub>Refresh · analysis · settings · tray</sub><br /><br />
+<img src="docs/screenshots/06-context-menu.png" alt="Context menu" width="320" />
+</td>
+</tr>
 </table>
+</td></tr>
+</table>
+</p>
 
 ---
 

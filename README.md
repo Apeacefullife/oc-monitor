@@ -22,10 +22,6 @@
 
 > **免责声明**：本项目为第三方开源工具，与 DeepSeek 官方无关联，不由 DeepSeek 维护或背书。使用本软件即表示你自行承担 API 调用与账户安全相关风险。
 
-<br />
-
-<img src="docs/screenshots/01-main.png" alt="DS-Monitor 主界面" width="720" />
-
 </div>
 
 <br />
@@ -58,48 +54,50 @@
 
 ## 界面预览
 
-### 主面板
-
-日常监控的核心界面：余额、消耗、模型用量与趋势一屏掌握。
-
 <p align="center">
-  <img src="docs/screenshots/01-main.png" alt="主面板" width="360" />
-</p>
-
-鼠标悬停在底部 **消耗趋势** 柱状图上，可查看当日 Token 明细与费用。
-
-<p align="center">
-  <img src="docs/screenshots/05-trend-tooltip.png" alt="消耗趋势悬浮提示" width="360" />
-</p>
-
----
-
-### 设置侧栏
-
-从主界面右上角齿轮进入。管理 API Key、平台登录、刷新间隔、开机自启、语言与开源仓库入口。
-
-<p align="center">
-  <img src="docs/screenshots/02-settings.png" alt="设置" width="640" />
-</p>
-
----
-
-### AI 分析侧栏
-
-从主界面右上角 ✨ 进入。展开后窗口向右延伸，展示命中率、图表与用量摘要。
-
-<table align="center">
-  <tr>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/03-analysis.png" alt="AI 分析 - 图表" width="100%" />
-      <br /><sub>图表与指标</sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/04-analysis-report.png" alt="AI 分析 - 报告" width="100%" />
-      <br /><sub>AI 用量报告（点击刷新按钮生成）</sub>
-    </td>
-  </tr>
+<table>
+<tr><td align="center">
+<table border="1" cellpadding="16" cellspacing="0">
+<tr>
+<td align="center" valign="top" width="50%">
+<b>主面板</b><br />
+<sub>余额 · 消耗 · 模型 · 趋势</sub><br /><br />
+<img src="docs/screenshots/01-main.png" alt="主面板" width="320" />
+</td>
+<td align="center" valign="top" width="50%">
+<b>趋势悬浮</b><br />
+<sub>悬停柱子查看 Token 明细</sub><br /><br />
+<img src="docs/screenshots/05-trend-tooltip.gif" alt="消耗趋势悬浮提示" width="320" />
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<b>设置</b><br />
+<sub>API Key · 刷新 · 开机自启</sub><br /><br />
+<img src="docs/screenshots/02-settings.png" alt="设置" width="320" />
+</td>
+<td align="center" valign="top" width="50%">
+<b>AI 分析</b><br />
+<sub>命中率 · 缓存构成 · 趋势图</sub><br /><br />
+<img src="docs/screenshots/03-analysis.png" alt="AI 分析" width="320" />
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<b>AI 报告</b><br />
+<sub>一键生成用量解读</sub><br /><br />
+<img src="docs/screenshots/04-analysis-report.png" alt="AI 报告" width="320" />
+</td>
+<td align="center" valign="top" width="50%">
+<b>右键菜单</b><br />
+<sub>刷新 · 分析 · 设置 · 托盘</sub><br /><br />
+<img src="docs/screenshots/06-context-menu.png" alt="右键快捷菜单" width="320" />
+</td>
+</tr>
 </table>
+</td></tr>
+</table>
+</p>
 
 ---
 

@@ -1,6 +1,6 @@
 # 截图取景指南
 
-将截图保存为本目录下的 PNG 文件，共 **5 张**，文件名需与下表一致，主 README 会自动引用。
+将截图保存到本目录，文件名需与下表一致，主 README 会自动引用（趋势悬浮为 GIF，其余为 PNG）。
 
 ## 通用建议
 
@@ -34,12 +34,19 @@
 - 在分析侧栏顶部点击「刷新/生成」按钮，等待 AI 报告生成
 - 截报告展开后的状态（可与 `03` 相同窗口，重点是报告区域）
 
-### `05-trend-tooltip.png` — 消耗趋势悬浮提示
+### `05-trend-tooltip.gif` — 消耗趋势悬浮提示（GIF）
 
 - 在主面板底部 **消耗趋势** 图表区域
-- 将鼠标悬停在某一根柱子上，弹出毛玻璃明细卡片
-- 卡片应清晰可见：日期、总 Token、缓存命中/未命中、输出、费用等
-- 默认窄窗（约 360px 宽）即可，尽量让 tooltip 完整入镜
+- 录制鼠标移入/移出柱子的过程，展示 tooltip 弹出与切换
+- 建议：3～5 秒、宽 360px 左右、循环播放
+- 可用 Windows 自带录屏或 [ScreenToGif](https://www.screentogif.com/) 导出 GIF
+- 保存为 `docs/screenshots/05-trend-tooltip.gif`（若已有 `.png` 可删除）
+
+### `06-context-menu.png` — 右键快捷菜单
+
+- 在主界面内容区空白处 **右键**
+- 菜单应完整可见：刷新、AI 分析、设置、隐藏到托盘
+- 默认窄窗（约 360px 宽）即可
 
 ---
 
@@ -49,6 +56,7 @@
 - [ ] `02-settings.png`
 - [ ] `03-analysis.png`
 - [ ] `04-analysis-report.png`
-- [ ] `05-trend-tooltip.png`
+- [ ] `05-trend-tooltip.gif`
+- [ ] `06-context-menu.png`
 
 全部就位后，推送到 GitHub，README 中的图片会自动显示。
