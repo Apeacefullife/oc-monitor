@@ -1,6 +1,10 @@
 <p align="center">
-  <a href="#ds-monitor"><strong>简体中文</strong></a> · <a href="#english">English</a>
+<b>选择语言 · Choose Language</b><br>
+<sub>点击标题展开 / 收起</sub>
 </p>
+
+<details open>
+<summary><strong>🇨🇳 简体中文</strong></summary>
 
 <div align="center">
 
@@ -194,9 +198,10 @@ pnpm build
 
 本项目为**第三方开源工具**，与 DeepSeek 官方无关联，不由 DeepSeek 维护或背书。使用本软件即表示你自行承担 API 调用与账户安全相关风险。
 
----
+</details>
 
-## English
+<details>
+<summary><strong>🇺🇸 English</strong></summary>
 
 <div align="center">
 
@@ -389,6 +394,8 @@ If DS-Monitor helps you, voluntary tips are appreciated.
 ## Disclaimer
 
 This is an **independent open-source project**. It is not affiliated with, endorsed by, or maintained by DeepSeek. You use this software at your own risk regarding API usage and account security.
+
+</details>
 
 ---
 
