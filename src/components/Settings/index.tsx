@@ -260,7 +260,6 @@ export default forwardRef<HTMLElement, Props>(function Settings(
                   </button>
                 )}
               </div>
-              <p className="settings-ui-note">{t("platform.stepsFlow")}</p>
             </section>
 
             <div className="settings-ui-divider" />
