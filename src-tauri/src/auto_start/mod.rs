@@ -31,7 +31,7 @@ fn set_registry_value(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         path_key,
         winreg::enums::KEY_SET_VALUE,
     )?;
-    key.set_value("DS-Monitor", &path)?;
+    key.set_value("OC-Monitor", &path)?;
     Ok(())
 }
 
@@ -43,7 +43,7 @@ fn delete_registry_value() -> Result<(), Box<dyn std::error::Error>> {
         path_key,
         winreg::enums::KEY_SET_VALUE,
     )?;
-    let _ = key.delete_value("DS-Monitor");
+    let _ = key.delete_value("OC-Monitor");
     Ok(())
 }
 
@@ -52,7 +52,7 @@ fn get_registry_value() -> Option<String> {
     let hkcu = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
     let path_key = r"Software\Microsoft\Windows\CurrentVersion\Run";
     let key = hkcu.open_subkey_with_flags(path_key, winreg::enums::KEY_READ).ok()?;
-    key.get_value::<String, _>("DS-Monitor").ok()
+    key.get_value::<String, _>("OC-Monitor").ok()
 }
 
 #[cfg(not(target_os = "windows"))]

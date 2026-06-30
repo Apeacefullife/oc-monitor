@@ -2,17 +2,10 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import type {
   AppState,
-  BalanceInfo,
   DailyUsage,
   MonthlyCost,
+  NormalizedUsage,
 } from "../types";
-
-interface NormalizedUsage {
-  daily: DailyUsage[];
-  models: DailyUsage[];
-  monthly: MonthlyCost & { total_tokens?: number; request_count?: number };
-  has_daily_granularity: boolean;
-}
 
 function hasMeaningfulUsage(usage: NormalizedUsage | null | undefined): boolean {
   if (!usage) return false;
@@ -30,10 +23,10 @@ function applyUsageToUpdates(
 ): void {
   updates.dailyUsage = usage.daily;
   updates.modelUsage = usage.models;
-  updates.usageCurrency = usage.monthly.currency || "CNY";
+  updates.usageCurrency = usage.monthly.currency || "USD";
   updates.hasDailyGranularity = usage.has_daily_granularity;
   updates.hasUsageData = true;
-  updates.usageSource = "platform";
+  updates.usageSource = "local";
 
   if (
     usage.monthly.total_cost > 0 ||
@@ -59,30 +52,14 @@ function applyUsageToUpdates(
   }
 }
 
-function applyUsageToState(usage: NormalizedUsage): Partial<AppState> {
-  const updates: Partial<AppState> = {};
-  applyUsageToUpdates(usage, updates);
-  return updates;
-}
-
-function syncTrayTooltip(state: AppState): Promise<void> {
-  return invoke("update_tray_tooltip", {
-    balance: state.balance?.total_balance ?? null,
-    currency: state.balance?.currency ?? null,
-    monthlyCost: state.monthlyCost?.total_cost ?? null,
-    usageCurrency: state.usageCurrency ?? state.monthlyCost?.currency ?? null,
-  }).then(() => {}) as Promise<void>;
-}
-
-export const useAppStore = create<AppState>((set, get) => ({
-  balance: null,
+export const useAppStore = create<AppState>((set) => ({
   dailyUsage: [],
   modelUsage: [],
   monthlyCost: null,
   lastUpdated: null,
   loading: false,
   error: null,
-  usageCurrency: "CNY",
+  usageCurrency: "USD",
   hasDailyGranularity: true,
   hasUsageData: false,
   usageUnavailable: true,
@@ -97,24 +74,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   settingsOpen: false,
   analysisOpen: false,
 
-  getApiKey: async (): Promise<string | null> => {
-    try {
-      return await invoke<string | null>("get_api_key");
-    } catch (err) {
-      console.error("get_api_key failed:", err);
-      return null;
-    }
-  },
-
   fetchData: async () => {
-    const apiKey = await get().getApiKey();
-    if (!apiKey) {
-      set({ error: "errors.apiKeyRequired", loading: false });
-      return;
-    }
-
     set({ loading: true, error: null });
-
     try {
       await invoke("silent_refresh");
     } catch (err) {
@@ -122,26 +83,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  applySilentRefresh: (payload: {
-    balance?: BalanceInfo | null;
-    usage?: NormalizedUsage | null;
-  }) => {
+  applySilentRefresh: (payload: { usage?: NormalizedUsage | null }) => {
     const updates: Partial<AppState> = {
       lastUpdated: new Date().toISOString(),
       loading: false,
       error: null,
     };
-    if (payload.balance) {
-      updates.balance = payload.balance;
-    }
     if (hasMeaningfulUsage(payload.usage)) {
       applyUsageToUpdates(payload.usage!, updates);
     }
     set(updates as AppState);
-    syncTrayTooltip({ ...get(), ...updates } as AppState);
   },
 
-  setBalance: (balance) => set({ balance }),
   setDailyUsage: (usage) => set({ dailyUsage: usage }),
   setModelUsage: (usage) => set({ modelUsage: usage }),
   setMonthlyCost: (cost) => set({ monthlyCost: cost }),
@@ -152,7 +105,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   restoreFromCache: async () => {
     try {
       const cached = await invoke<{
-        balance: BalanceInfo | null;
         daily_usage: DailyUsage[] | null;
         model_usage: DailyUsage[] | null;
         monthly_cost: MonthlyCost | null;
@@ -179,14 +131,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         if (platformFromCache) {
           set({
-            balance: cached.balance ?? null,
             ...applyUsageToState(platformFromCache),
             lastUpdated: cached.last_updated ?? null,
             usageUnavailable: true,
           });
         } else {
           set({
-            balance: cached.balance ?? null,
             dailyUsage: daily,
             modelUsage: models,
             monthlyCost: monthly,
@@ -218,3 +168,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       settings: { ...state.settings, ...newSettings },
     })),
 }));
+
+function applyUsageToState(usage: NormalizedUsage): Partial<AppState> {
+  const updates: Partial<AppState> = {};
+  applyUsageToUpdates(usage, updates);
+  return updates;
+}

@@ -1,12 +1,11 @@
-import type { BalanceInfo, DailyUsage, MonthlyCost } from "../../types";
+import type { DailyUsage, MonthlyCost } from "../../types";
 import BalanceCard from "./BalanceCard";
 import TodayUsage from "./TodayUsage";
-import MonthlyCostCard from "./MonthlyCost";
+import ThisWeekUsage from "./ThisWeekUsage";
 import ModelUsageList from "./ModelUsageList";
 import UsageTrendChart from "./UsageTrendChart";
 
 interface Props {
-  balance: BalanceInfo | null;
   dailyUsage: DailyUsage[];
   modelUsage: DailyUsage[];
   monthlyCost: MonthlyCost | null;
@@ -16,16 +15,14 @@ interface Props {
 }
 
 export default function MainPanel({
-  balance,
   dailyUsage,
   modelUsage,
-  monthlyCost,
-  usageCurrency = "CNY",
+  usageCurrency = "USD",
   hasDailyGranularity = true,
 }: Props) {
   return (
     <>
-      <BalanceCard balance={balance} dailyUsage={dailyUsage} />
+      <BalanceCard dailyUsage={dailyUsage} />
 
       <div className="grid grid-cols-2 gap-2 items-stretch">
         <TodayUsage
@@ -33,8 +30,8 @@ export default function MainPanel({
           currency={usageCurrency}
           isMonthlyFallback={!hasDailyGranularity}
         />
-        <MonthlyCostCard
-          monthlyCost={monthlyCost}
+        <ThisWeekUsage
+          dailyUsage={dailyUsage}
           currency={usageCurrency}
         />
       </div>

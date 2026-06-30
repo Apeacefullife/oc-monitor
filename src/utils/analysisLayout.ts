@@ -25,6 +25,7 @@ export async function setWindowLogicalSize(
   try {
     const win = getCurrentWindow();
     await win.setSize(new LogicalSize(width, height));
+    await invoke("position_window_bottom_right");
   } catch {
     // ignore in dev/browser
   }

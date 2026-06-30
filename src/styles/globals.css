@@ -991,17 +991,6 @@ button:focus-visible {
   cursor: none !important;
 }
 
-.titlebar--locked .titlebar-drag {
-  -webkit-app-region: no-drag;
-}
-
-/* 锁定：仅标题栏解锁按钮可点，其余界面不可交互 */
-.app-shell--interaction-locked .app-main-col > :not(.titlebar),
-.app-shell--interaction-locked .analysis-backdrop,
-.app-shell--interaction-locked .analysis-drawer {
-  pointer-events: none;
-}
-
 /* ── 磨玻璃浅色变体（用于弹窗/覆盖层） ── */
 .glass-panel {
   background: rgba(13, 17, 23, 0.85);

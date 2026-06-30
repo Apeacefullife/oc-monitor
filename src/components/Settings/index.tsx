@@ -1,16 +1,10 @@
-import { forwardRef, useCallback, useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { forwardRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useSettingsStore } from "../../stores/useSettingsStore";
 import { useAppStore } from "../../stores/useAppStore";
 import { useI18nStore, useT, type Locale } from "../../i18n";
 import { GITHUB_REPO_URL, REFRESH_INTERVAL_VALUES } from "../../utils/constants";
-import {
-  hasPlatformSession,
-  openPlatformLogin,
-  openPlatformLoginIfNeeded,
-} from "../../utils/platformLogin";
 import ToggleSwitch from "../common/ToggleSwitch";
 
 interface Props {
@@ -40,72 +34,15 @@ export default forwardRef<HTMLElement, Props>(function Settings(
   const {
     refreshInterval,
     autoStart,
-    setApiKey,
     applyAutoStart,
     applyRefreshInterval,
   } = useSettingsStore();
 
-  const { fetchData } = useAppStore();
-
-  const [apiKey, setApiKeyInput] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const [apiKeyStatus, setApiKeyStatus] = useState<{
-    type: "success" | "error" | null;
-    message: string;
-  }>({ type: null, message: "" });
-  const [platformConnected, setPlatformConnected] = useState<boolean | null>(
-    null,
-  );
   const [clearing, setClearing] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [clearError, setClearError] = useState<string | null>(null);
   const [autoStartError, setAutoStartError] = useState<string | null>(null);
   const [autoStartBusy, setAutoStartBusy] = useState(false);
-
-  const refreshPlatformStatus = useCallback(() => {
-    void hasPlatformSession().then(setPlatformConnected);
-  }, []);
-
-  useEffect(() => {
-    refreshPlatformStatus();
-    const unsubs: Array<() => void> = [];
-    listen("platform-login-done", refreshPlatformStatus).then((fn) =>
-      unsubs.push(fn),
-    );
-    listen("platform-session-expired", () => setPlatformConnected(false)).then(
-      (fn) => unsubs.push(fn),
-    );
-    listen("all-data-cleared", () => setPlatformConnected(false)).then((fn) =>
-      unsubs.push(fn),
-    );
-    return () => unsubs.forEach((fn) => fn());
-  }, [refreshPlatformStatus]);
-
-  const handleApiKeyVerified = async (key: string) => {
-    setApiKey(key);
-    useSettingsStore.getState().setApiKeyVerified(true);
-    await fetchData();
-    onClose();
-    await openPlatformLoginIfNeeded();
-  };
-
-  const handleVerifyApiKey = async () => {
-    if (!apiKey.trim()) {
-      setApiKeyStatus({ type: "error", message: t("apiKey.enterKey") });
-      return;
-    }
-    setVerifying(true);
-    setApiKeyStatus({ type: null, message: "" });
-    try {
-      await invoke("save_api_key", { apiKey: apiKey.trim() });
-      await handleApiKeyVerified(apiKey.trim());
-      setApiKeyStatus({ type: "success", message: t("apiKey.verifySuccess") });
-    } catch (err) {
-      setApiKeyStatus({ type: "error", message: String(err) });
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   const handleRefreshIntervalChange = (interval: number) => {
     void applyRefreshInterval(interval);
@@ -137,18 +74,15 @@ export default forwardRef<HTMLElement, Props>(function Settings(
     try {
       await invoke("clear_all_data");
       useSettingsStore.getState().reset();
-      setApiKeyInput("");
-      setApiKeyStatus({ type: null, message: "" });
       setClearConfirmOpen(false);
       useAppStore.setState({
-        balance: null,
         dailyUsage: [],
         modelUsage: [],
         monthlyCost: null,
         lastUpdated: null,
         loading: false,
-        error: "errors.apiKeyRequired",
-        usageCurrency: "CNY",
+        error: null,
+        usageCurrency: "USD",
         hasDailyGranularity: true,
         hasUsageData: false,
         usageUnavailable: true,
@@ -202,67 +136,13 @@ export default forwardRef<HTMLElement, Props>(function Settings(
 
           <div className="settings-ui-body">
             <section className="settings-ui-block">
-              <label className="settings-ui-caption" htmlFor="settings-api-key">
-                {t("apiKey.label")}
-              </label>
-              <div className="settings-ui-field">
-                <input
-                  id="settings-api-key"
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder={t("apiKey.placeholder")}
-                  className="settings-ui-input"
-                  onKeyDown={(e) => e.key === "Enter" && void handleVerifyApiKey()}
-                />
-                <button
-                  type="button"
-                  onClick={() => void handleVerifyApiKey()}
-                  disabled={verifying}
-                  className="settings-ui-action"
-                >
-                  {verifying ? t("apiKey.verifying") : t("apiKey.verify")}
-                </button>
+              <div className="settings-ui-caption">
+                {t("settings.dataSource")}
               </div>
-              <p className="settings-ui-note">{t("apiKey.securityHint")}</p>
-              {apiKeyStatus.type && (
-                <p
-                  className={`settings-ui-note ${
-                    apiKeyStatus.type === "success"
-                      ? "settings-ui-note--ok"
-                      : "settings-ui-note--err"
-                  }`}
-                >
-                  {apiKeyStatus.message}
-                </p>
-              )}
+              <p className="settings-ui-note">{t("settings.dataSourceHint")}</p>
             </section>
 
-            <div className="settings-ui-divider" />
-
-            <section className="settings-ui-block">
-              <div className="settings-ui-row">
-                <span className="settings-ui-row-label">
-                  {t("platform.settingsTitle")}
-                </span>
-                {platformConnected ? (
-                  <span className="settings-ui-status">
-                    <span className="settings-ui-status-dot" aria-hidden />
-                    {t("platform.connectedShort")}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => void openPlatformLogin()}
-                    className="settings-ui-link"
-                  >
-                    {t("platform.loginBtn")}
-                  </button>
-                )}
-              </div>
-            </section>
-
-            <div className="settings-ui-divider" />
+              <div className="settings-ui-divider" />
 
             <section className="settings-ui-block settings-ui-block--grow">
               <div>

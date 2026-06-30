@@ -1,89 +1,35 @@
-import type { BalanceInfo, DailyUsage } from "../../types";
+import type { DailyUsage } from "../../types";
 import { useT } from "../../i18n";
-import { estimateBalanceRemainingDays } from "../../utils/balanceEstimate";
-import { formatCurrency } from "../../utils/format";
+import { formatCurrency, formatTokens } from "../../utils/format";
 
 interface Props {
-  balance: BalanceInfo | null;
   dailyUsage: DailyUsage[];
 }
 
-export default function BalanceCard({ balance, dailyUsage }: Props) {
+export default function BalanceCard({ dailyUsage }: Props) {
   const t = useT();
 
-  const currency = balance?.currency ?? "USD";
-  const available =
-    balance &&
-    balance.is_available !== false &&
-    balance.status !== "exhausted";
+  const monthStr = new Date().toISOString().slice(0, 7);
+  const monthUsage = dailyUsage.filter((u) => u.date.startsWith(monthStr));
+  const monthTokens = monthUsage.reduce((s, u) => s + u.total_tokens, 0);
+  const monthCost = monthUsage.reduce((s, u) => s + u.cost, 0);
 
-  let meta: string | null = null;
-  let isLowBalance = false;
-
-  if (balance && balance.total_balance > 0) {
-    const days = estimateBalanceRemainingDays(
-      balance.total_balance,
-      dailyUsage,
-    );
-
-    isLowBalance =
-      balance.status === "low" ||
-      balance.status === "exhausted" ||
-      (days !== null && days < 3);
-
-    if (days !== null) {
-      meta =
-        days < 1
-          ? t("balance.estimatedLessThanDay")
-          : t("balance.estimatedDays", { n: Math.round(days) });
-    } else if (balance.status === "low") {
-      meta = t("balance.low");
-    }
-  } else if (balance?.status === "exhausted") {
-    isLowBalance = true;
-  }
+  const totalSessions = dailyUsage.reduce((s, u) => s + u.request_count, 0);
 
   return (
-    <div
-      className={`glass-card balance-metric-card animate-fade-in h-full${
-        isLowBalance ? " balance-metric-card--low" : ""
-      }`}
-    >
+    <div className="glass-card balance-metric-card animate-fade-in h-full">
       <div className="metric-card__head">
         <span className="ui-label text-[10px] tracking-wide leading-none">
-          {t("balance.title")}
+          {t("usage.monthCost")}
         </span>
-        {balance && (
-          <span
-            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none shrink-0 ${
-              available
-                ? "bg-success/10 text-success"
-                : "bg-danger/10 text-danger"
-            }`}
-          >
-            {available ? t("balance.available") : t("balance.unavailable")}
-          </span>
-        )}
       </div>
       <div className="balance-metric-card__body">
-        <span
-          className={`balance-metric-card__amount font-mono leading-none truncate${
-            isLowBalance
-              ? " balance-metric-card__amount--low"
-              : " ui-value-balance"
-          }`}
-        >
-          {balance ? formatCurrency(balance.total_balance, currency) : "--"}
+        <span className="balance-metric-card__amount font-mono leading-none truncate ui-value-balance">
+          {formatCurrency(monthCost, "USD")}
         </span>
-        {meta && (
-          <span
-            className={`balance-metric-card__aside font-mono leading-snug${
-              isLowBalance ? " balance-metric-card__aside--low" : " ui-muted"
-            }`}
-          >
-            {meta}
-          </span>
-        )}
+        <span className="balance-metric-card__aside font-mono leading-snug ui-muted">
+          {formatTokens(monthTokens)} · {totalSessions}{t("usage.requestCount", { n: "" }).trim()}
+        </span>
       </div>
     </div>
   );

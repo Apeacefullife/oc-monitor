@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { useT, translate, useI18nStore } from "./i18n";
+import { useT } from "./i18n";
 import { useAppStore } from "./stores/useAppStore";
-import { useWindowStore } from "./stores/useWindowStore";
 import TitleBar from "./components/TitleBar";
 import MainPanel from "./components/MainPanel";
 import Settings from "./components/Settings";
@@ -13,21 +12,13 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 import QuickActionMenu, {
   type QuickActionMenuState,
 } from "./components/common/QuickActionMenu";
-import type { BalanceInfo, DailyUsage } from "./types";
+import type { DailyUsage } from "./types";
 import {
   animateDrawerClose,
   animateDrawerOpen,
   clearLegacyCanvasPref,
   setWindowLogicalSize,
 } from "./utils/analysisLayout";
-import PlatformLoginBanner, {
-  type PlatformBannerMode,
-} from "./components/PlatformLoginBanner";
-import {
-  hasPlatformSession,
-  openPlatformLogin,
-  openPlatformLoginIfNeeded,
-} from "./utils/platformLogin";
 
 const BASE_WIDTH = 360;
 const PANEL_ANIM_MS = 320;
@@ -48,15 +39,12 @@ interface SilentUsage {
 }
 
 interface SilentRefreshPayload {
-  balance?: BalanceInfo | null;
   usage?: SilentUsage | null;
 }
 
 function App() {
   const t = useT();
-  const locale = useI18nStore((s) => s.locale);
   const {
-    balance,
     dailyUsage,
     modelUsage,
     monthlyCost,
@@ -68,7 +56,6 @@ function App() {
     fetchData,
     restoreFromCache,
     applySilentRefresh,
-    getApiKey,
     usageCurrency,
     hasDailyGranularity,
   } = useAppStore();
@@ -84,11 +71,8 @@ function App() {
   const [analysisVisible, setAnalysisVisible] = useState(false);
   const [settingsMounted, setSettingsMounted] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [platformBanner, setPlatformBanner] =
-    useState<PlatformBannerMode | null>(null);
   const [quickActionMenu, setQuickActionMenu] =
     useState<QuickActionMenuState | null>(null);
-  const setInteractionLocked = useWindowStore((s) => s.setInteractionLocked);
 
   const measureShellHeight = useCallback(() => {
     const mainHeight = mainColRef.current?.offsetHeight ?? 0;
@@ -113,7 +97,7 @@ function App() {
     }
     lastSizeRef.current = { width: BASE_WIDTH, height };
     await setWindowLogicalSize(BASE_WIDTH, height);
-  }, [measureShellHeight, loading, error, balance, hasDailyGranularity]);
+  }, [measureShellHeight, loading, error, hasDailyGranularity]);
 
   const closeAnalysisDrawer = useCallback(async () => {
     if (!analysisOpen) return;
@@ -193,60 +177,21 @@ function App() {
     }
   }, [settingsOpen, closeSettingsDrawer, openSettingsDrawer]);
 
-  const handlePlatformLogin = useCallback(async () => {
-    try {
-      await openPlatformLogin();
-      setPlatformBanner("waiting");
-    } catch (err) {
-      console.error("open_platform_login failed:", err);
-    }
-  }, []);
-
-  const refreshPlatformBanner = useCallback(async () => {
-    const key = await getApiKey();
-    if (!key) {
-      setPlatformBanner(null);
-      return;
-    }
-    const connected = await hasPlatformSession();
-    if (connected) {
-      setPlatformBanner(null);
-      return;
-    }
-    setPlatformBanner((prev) => (prev === "expired" ? "expired" : "required"));
-  }, [getApiKey]);
-
   useEffect(() => {
     clearLegacyCanvasPref();
-    void restoreFromCache();
-    void useWindowStore.getState().syncInteractionLocked();
+    // 启动时清缓存，确保读到全量数据
+    void invoke("clear_cache").finally(() => {
+      void restoreFromCache();
+    });
 
     const startupTimer = window.setTimeout(() => {
-      void getApiKey().then(async (key) => {
-        if (key) {
-          void invoke("silent_refresh").catch(() => fetchData());
-
-          window.setTimeout(async () => {
-            const result = await openPlatformLoginIfNeeded();
-            if (result === "opened") {
-              setPlatformBanner("waiting");
-            } else if (result === "has_session") {
-              setPlatformBanner(null);
-            } else {
-              await refreshPlatformBanner();
-            }
-          }, 1000);
-        } else {
-          void openSettingsDrawer();
-        }
-      });
+      void invoke("silent_refresh");
     }, 400);
 
     const unsubs: Array<() => void> = [];
 
     listen<SilentRefreshPayload>("silent-refresh-done", (event) => {
       applySilentRefresh({
-        balance: event.payload.balance ?? null,
         usage: event.payload.usage ?? null,
       });
     }).then((fn) => unsubs.push(fn));
@@ -259,36 +204,8 @@ function App() {
       void openAnalysisDrawer();
     }).then((fn) => unsubs.push(fn));
 
-    listen<boolean>("interaction-lock-changed", (event) => {
-      setInteractionLocked(event.payload);
-    }).then((fn) => unsubs.push(fn));
-
-    listen("platform-login-opening", () => {
-      setPlatformBanner("waiting");
-    }).then((fn) => unsubs.push(fn));
-
-    listen("platform-login-done", () => {
-      setPlatformBanner(null);
-    }).then((fn) => unsubs.push(fn));
-
-    listen("platform-session-expired", () => {
-      setPlatformBanner("expired");
-    }).then((fn) => unsubs.push(fn));
-
     listen("all-data-cleared", () => {
-      setPlatformBanner(null);
-    }).then((fn) => unsubs.push(fn));
-
-    listen("platform-login-cancelled", () => {
-      void hasPlatformSession().then((connected) => {
-        if (connected) {
-          setPlatformBanner(null);
-          return;
-        }
-        setPlatformBanner((prev) =>
-          prev === "expired" ? "expired" : "required",
-        );
-      });
+      // reset handled by settings
     }).then((fn) => unsubs.push(fn));
 
     return () => {
@@ -319,13 +236,8 @@ function App() {
     };
   }, [syncWindowSize]);
 
-  const needsApiKey = error === "errors.apiKeyRequired";
-  const errorMessage =
-    error && error.startsWith("errors.")
-      ? translate(locale, error)
-      : error;
+  const errorMessage = error ?? null;
   const overlayVisible = analysisVisible || settingsVisible;
-  const interactionLocked = useWindowStore((s) => s.interactionLocked);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -352,18 +264,10 @@ function App() {
     void invoke("hide_main_window");
   }, []);
 
-  const handleQuickUnlock = useCallback(() => {
-    void invoke("set_window_interaction_locked", { locked: false }).then(() => {
-      setInteractionLocked(false);
-    });
-  }, [setInteractionLocked]);
-
   return (
     <div
       ref={shellRef}
-      className={`app-shell relative overflow-hidden font-sans select-none${
-        interactionLocked ? " app-shell--interaction-locked" : ""
-      }`}
+      className="app-shell relative overflow-hidden font-sans select-none"
       onContextMenu={handleContextMenu}
     >
       <div
@@ -376,7 +280,6 @@ function App() {
           <StatusIndicator
             loading={loading}
             lastUpdated={lastUpdated}
-            status={balance?.status}
           />
           <div className="flex items-center gap-0.5">
             <button
@@ -435,40 +338,19 @@ function App() {
           </div>
         </div>
 
-        {error && !needsApiKey && (
+        {error && (
           <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs shrink-0">
             {errorMessage}
           </div>
         )}
 
-        {needsApiKey && (
-          <div className="mx-4 mb-2 px-3 py-3 rounded-xl glass-card text-center shrink-0">
-            <p className="text-white/50 text-xs mb-2">{t("apiKey.configurePrompt")}</p>
-            <button
-              type="button"
-              onClick={() => void openSettingsDrawer()}
-              className="px-4 py-1.5 rounded-lg bg-deepseek-500/20 text-deepseek-400 text-xs hover:bg-deepseek-500/30 transition-colors"
-            >
-              {t("apiKey.openSettings")}
-            </button>
-          </div>
-        )}
-
-        {platformBanner && !needsApiKey && (
-          <PlatformLoginBanner
-            mode={platformBanner}
-            onLogin={() => void handlePlatformLogin()}
-          />
-        )}
-
         <div className="px-4 pb-3 space-y-3 shrink-0">
-          {loading && !balance ? (
+          {loading && dailyUsage.length === 0 ? (
             <div className="flex items-center justify-center h-40">
               <LoadingSpinner />
             </div>
           ) : (
             <MainPanel
-              balance={balance}
               dailyUsage={dailyUsage}
               modelUsage={modelUsage}
               monthlyCost={monthlyCost}
@@ -499,7 +381,6 @@ function App() {
           ref={analysisColRef}
           visible={analysisVisible}
           onClose={() => void handleToggleAnalysis()}
-          balance={balance}
           dailyUsage={dailyUsage}
           monthlyCost={monthlyCost}
           usageCurrency={usageCurrency}
@@ -516,13 +397,11 @@ function App() {
 
       <QuickActionMenu
         state={quickActionMenu}
-        locked={interactionLocked}
         onClose={() => setQuickActionMenu(null)}
         onRefresh={handleQuickRefresh}
         onOpenAnalysis={handleQuickOpenAnalysis}
         onOpenSettings={handleQuickOpenSettings}
         onHideToTray={handleQuickHideToTray}
-        onUnlock={handleQuickUnlock}
       />
     </div>
   );

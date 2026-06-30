@@ -6,7 +6,6 @@ use crate::store;
 /// 缓存数据
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CachedData {
-    pub balance: Option<serde_json::Value>,
     pub daily_usage: Option<serde_json::Value>,
     pub model_usage: Option<serde_json::Value>,
     pub monthly_cost: Option<serde_json::Value>,
@@ -18,7 +17,6 @@ pub struct CachedData {
 #[tauri::command]
 pub async fn save_cached_data(
     app_handle: AppHandle,
-    balance: Option<serde_json::Value>,
     daily_usage: Option<serde_json::Value>,
     model_usage: Option<serde_json::Value>,
     monthly_cost: Option<serde_json::Value>,
@@ -27,9 +25,6 @@ pub async fn save_cached_data(
 ) -> Result<bool, String> {
     let store = store::get_store(&app_handle);
 
-    if let Some(v) = balance {
-        store.set("cache_balance", v);
-    }
     if let Some(v) = daily_usage {
         store.set("cache_daily_usage", v);
     }
@@ -58,7 +53,6 @@ pub async fn get_cached_data(app_handle: AppHandle) -> Result<Option<CachedData>
     let store = store::get_store(&app_handle);
 
     let cached = CachedData {
-        balance: store.get("cache_balance"),
         daily_usage: store.get("cache_daily_usage"),
         model_usage: store.get("cache_model_usage"),
         monthly_cost: store.get("cache_monthly_cost"),
@@ -75,7 +69,6 @@ pub async fn get_cached_data(app_handle: AppHandle) -> Result<Option<CachedData>
 #[tauri::command]
 pub async fn clear_cache(app_handle: AppHandle) -> Result<bool, String> {
     let store = store::get_store(&app_handle);
-    store.delete("cache_balance");
     store.delete("cache_daily_usage");
     store.delete("cache_model_usage");
     store.delete("cache_monthly_cost");

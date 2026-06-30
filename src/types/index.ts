@@ -1,18 +1,5 @@
 /// 应用全局类型定义
 
-/** 账户状态 */
-export type AccountStatus = "normal" | "low" | "exhausted" | "unknown";
-
-/** 余额信息 */
-export interface BalanceInfo {
-  total_balance: number;
-  granted_balance: number;
-  topped_up_balance: number;
-  currency?: string;
-  is_available?: boolean;
-  status: AccountStatus;
-}
-
 /** 每日用量 */
 export interface DailyUsage {
   date: string;
@@ -32,6 +19,7 @@ export interface MonthlyCost {
   currency: string;
   month: string;
   request_count?: number;
+  total_tokens?: number;
 }
 
 /** API 响应包装 */
@@ -41,11 +29,20 @@ export interface ApiResponse<T> {
   error: string | null;
 }
 
+/** 归一化用量 */
+export interface NormalizedUsage {
+  daily: DailyUsage[];
+  models: DailyUsage[];
+  monthly: MonthlyCost & { total_tokens?: number; request_count?: number };
+  has_daily_granularity: boolean;
+}
+
 /** 缓存数据 */
 export interface CachedData {
-  balance: BalanceInfo | null;
   daily_usage: DailyUsage[] | null;
+  model_usage: DailyUsage[] | null;
   monthly_cost: MonthlyCost | null;
+  platform_usage: NormalizedUsage | null;
   last_updated: string | null;
 }
 
@@ -54,7 +51,6 @@ export type RefreshInterval = 30 | 60 | 120 | 300;
 
 /** 应用设置 */
 export interface AppSettings {
-  api_key: string;
   refresh_interval: RefreshInterval;
   auto_start: boolean;
   dark_mode: boolean;
@@ -64,7 +60,6 @@ export interface AppSettings {
 /** 应用状态 */
 export interface AppState {
   // 数据
-  balance: BalanceInfo | null;
   dailyUsage: DailyUsage[];
   modelUsage: DailyUsage[];
   monthlyCost: MonthlyCost | null;
@@ -75,7 +70,7 @@ export interface AppState {
   hasDailyGranularity: boolean;
   hasUsageData: boolean;
   usageUnavailable: boolean;
-  usageSource: "platform" | null;
+  usageSource: "local" | null;
 
   // 设置
   settings: Partial<AppSettings>;
@@ -83,18 +78,8 @@ export interface AppState {
   analysisOpen: boolean;
 
   // 操作
-  getApiKey: () => Promise<string | null>;
   fetchData: () => Promise<void>;
-  applySilentRefresh: (payload: {
-    balance?: BalanceInfo | null;
-    usage?: {
-      daily: DailyUsage[];
-      models: DailyUsage[];
-      monthly: MonthlyCost & { total_tokens?: number; request_count?: number };
-      has_daily_granularity: boolean;
-    } | null;
-  }) => void;
-  setBalance: (balance: BalanceInfo) => void;
+  applySilentRefresh: (payload: { usage?: NormalizedUsage | null }) => void;
   setDailyUsage: (usage: DailyUsage[]) => void;
   setModelUsage: (usage: DailyUsage[]) => void;
   setMonthlyCost: (cost: MonthlyCost) => void;

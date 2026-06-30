@@ -5,15 +5,11 @@ import { DEFAULT_REFRESH_INTERVAL } from "../utils/constants";
 import { useAppStore } from "./useAppStore";
 
 interface SettingsState {
-  apiKey: string;
-  apiKeyVerified: boolean;
   refreshInterval: number;
   autoStart: boolean;
   darkMode: boolean;
   settingsInitialized: boolean;
 
-  setApiKey: (key: string) => void;
-  setApiKeyVerified: (verified: boolean) => void;
   setRefreshInterval: (interval: number) => void;
   setAutoStart: (enabled: boolean) => void;
   setDarkMode: (enabled: boolean) => void;
@@ -25,8 +21,6 @@ interface SettingsState {
 }
 
 const initialState = {
-  apiKey: "",
-  apiKeyVerified: false,
   refreshInterval: DEFAULT_REFRESH_INTERVAL,
   autoStart: false,
   darkMode: true,
@@ -36,8 +30,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   ...initialState,
   settingsInitialized: false,
 
-  setApiKey: (key) => set({ apiKey: key, apiKeyVerified: false }),
-  setApiKeyVerified: (verified) => set({ apiKeyVerified: verified }),
   setRefreshInterval: (interval) => set({ refreshInterval: interval }),
   setAutoStart: (enabled) => set({ autoStart: enabled }),
   setDarkMode: (enabled) => set({ darkMode: enabled }),

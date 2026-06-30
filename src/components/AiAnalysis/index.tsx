@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18nStore, useT } from "../../i18n";
-import type { BalanceInfo, DailyUsage, MonthlyCost } from "../../types";
+import type { DailyUsage, MonthlyCost } from "../../types";
 import {
   buildUsageAnalysisSnapshot,
   formatHitRate,
@@ -16,7 +16,6 @@ const PANEL_ANIM_MS = 320;
 interface Props {
   visible: boolean;
   onClose: () => void;
-  balance: BalanceInfo | null;
   dailyUsage: DailyUsage[];
   monthlyCost: MonthlyCost | null;
   usageCurrency: string;
@@ -26,7 +25,6 @@ export default forwardRef<HTMLElement, Props>(function AiAnalysisPanel(
   {
     visible,
     onClose,
-    balance,
     dailyUsage,
     monthlyCost,
     usageCurrency,
@@ -40,12 +38,11 @@ export default forwardRef<HTMLElement, Props>(function AiAnalysisPanel(
     () =>
       buildUsageAnalysisSnapshot(
         dailyUsage,
-        balance,
         monthlyCost,
         usageCurrency,
         locale,
       ),
-    [dailyUsage, balance, monthlyCost, usageCurrency, locale],
+    [dailyUsage, monthlyCost, usageCurrency, locale],
   );
 
   const [aiText, setAiText] = useState<string | null>(null);
@@ -58,9 +55,13 @@ export default forwardRef<HTMLElement, Props>(function AiAnalysisPanel(
     if (!visible) {
       setChartsReady(false);
       setReportExpanded(false);
+      setAiText(null);
+      setAiError(null);
       return;
     }
-    const timer = window.setTimeout(() => setChartsReady(true), PANEL_ANIM_MS);
+    const timer = window.setTimeout(() => {
+      setChartsReady(true);
+    }, PANEL_ANIM_MS);
     return () => window.clearTimeout(timer);
   }, [visible]);
 
@@ -75,8 +76,6 @@ export default forwardRef<HTMLElement, Props>(function AiAnalysisPanel(
     setAiError(null);
 
     const payload = JSON.stringify({
-      balance: snapshot.summary.balance,
-      currency: snapshot.summary.currency,
       monthly_cost: snapshot.summary.monthlyCost,
       cache_hit_rate: {
         today: snapshot.today.hitRate,

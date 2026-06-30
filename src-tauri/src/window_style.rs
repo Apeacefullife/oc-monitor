@@ -10,8 +10,6 @@ use std::sync::OnceLock;
 
 use tauri::{Emitter, Manager, WebviewWindow, window::Color};
 
-use crate::window_interaction;
-
 /// SWCA 磨玻璃着色（ARGB，alpha 越低越透）
 const ACRYLIC_TINT: Color = Color(13, 17, 23, 100);
 
@@ -399,11 +397,10 @@ unsafe extern "system" fn chrome_wndproc(
     wparam: windows::Win32::Foundation::WPARAM,
     lparam: windows::Win32::Foundation::LPARAM,
 ) -> windows::Win32::Foundation::LRESULT {
-    use windows::Win32::Foundation::{LRESULT, POINT, RECT};
-    use windows::Win32::Graphics::Gdi::ScreenToClient;
+    use windows::Win32::Foundation::LRESULT;
     use windows::Win32::UI::WindowsAndMessaging::{
-        CallWindowProcW, GetClientRect, HTCLIENT, HTTRANSPARENT, SC_MAXIMIZE, SC_RESTORE,
-        WM_ERASEBKGND, WM_MOUSEMOVE, WM_NCACTIVATE, WM_NCHITTEST, WM_NCLBUTTONDBLCLK,
+        CallWindowProcW, SC_MAXIMIZE, SC_RESTORE,
+        WM_ERASEBKGND, WM_MOUSEMOVE, WM_NCACTIVATE, WM_NCLBUTTONDBLCLK,
         WM_NCMOUSEMOVE, WM_NCPAINT, WM_SETCURSOR, WM_SYSCOMMAND,
     };
     use windows::Win32::UI::Controls::WM_MOUSELEAVE;
@@ -433,31 +430,6 @@ unsafe extern "system" fn chrome_wndproc(
             if cmd == SC_MAXIMIZE || cmd == SC_RESTORE {
                 return LRESULT(0);
             }
-        }
-        WM_NCHITTEST if window_interaction::is_locked() => {
-            let scale = WINDOW_SCALE_CENTI.load(Ordering::Relaxed) as f64 / 100.0;
-            let titlebar_h =
-                (window_interaction::titlebar_height_logical() * scale).round() as i32;
-            let actions_w =
-                (window_interaction::titlebar_actions_width_logical() * scale).round() as i32;
-
-            let raw = lparam.0 as isize;
-            let screen_x = (raw & 0xFFFF) as i16 as i32;
-            let screen_y = ((raw >> 16) & 0xFFFF) as i16 as i32;
-            let mut pt = POINT {
-                x: screen_x,
-                y: screen_y,
-            };
-            let _ = ScreenToClient(hwnd, &mut pt);
-
-            let mut rect = RECT::default();
-            let _ = GetClientRect(hwnd, &mut rect);
-
-            if pt.y >= 0 && pt.y < titlebar_h && pt.x >= rect.right - actions_w {
-                return LRESULT(HTCLIENT as _);
-            }
-
-            return LRESULT(HTTRANSPARENT as _);
         }
         _ => {}
     }

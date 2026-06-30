@@ -1,6 +1,6 @@
 import type { Locale } from "../i18n";
 import { translate } from "../i18n";
-import type { BalanceInfo, DailyUsage, MonthlyCost } from "../types";
+import type { DailyUsage, MonthlyCost } from "../types";
 
 export interface CacheStats {
   hit: number;
@@ -26,7 +26,6 @@ export interface UsageAnalysisSnapshot {
   dailyTrend: DailyCacheRow[];
   insights: string[];
   summary: {
-    balance: number | null;
     currency: string;
     monthlyCost: number | null;
     totalTokens7d: number;
@@ -142,10 +141,6 @@ function buildInsights(
     );
   }
 
-  if (summary.balance !== null && summary.balance < 5) {
-    insights.push(t("analysis.insightLowBalance"));
-  }
-
   if (insights.length === 0) {
     insights.push(t("analysis.insightInsufficientData"));
   }
@@ -155,7 +150,6 @@ function buildInsights(
 
 export function buildUsageAnalysisSnapshot(
   dailyUsage: DailyUsage[],
-  balance: BalanceInfo | null,
   monthlyCost: MonthlyCost | null,
   currency: string,
   locale: Locale = "zh",
@@ -184,7 +178,6 @@ export function buildUsageAnalysisSnapshot(
       : 0;
 
   const summary = {
-    balance: balance?.total_balance ?? null,
     currency,
     monthlyCost: monthlyCost?.total_cost ?? null,
     totalTokens7d,

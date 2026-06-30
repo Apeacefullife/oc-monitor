@@ -1,8 +1,6 @@
-import { useState, useEffect, type ReactNode } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { type ReactNode } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useT } from "../i18n";
-import { useWindowStore } from "../stores/useWindowStore";
 
 interface Props {
   hidden?: boolean;
@@ -11,31 +9,22 @@ interface Props {
 function TitleBarButton({
   onClick,
   title,
-  active = false,
   dangerHover = false,
-  disabled = false,
   children,
 }: {
   onClick: () => void;
   title: string;
-  active?: boolean;
   dangerHover?: boolean;
-  disabled?: boolean;
   children: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
       className={`w-6 h-6 flex items-center justify-center rounded-md transition-all duration-200 ${
-        disabled
-          ? "text-white/15"
-          : active
-            ? "text-deepseek-400 bg-deepseek-500/15"
-            : dangerHover
-              ? "text-white/25 hover:text-danger/70 hover:bg-danger/10"
-              : "text-white/25 hover:text-white/50 hover:bg-white/5"
+        dangerHover
+          ? "text-white/25 hover:text-danger/70 hover:bg-danger/10"
+          : "text-white/25 hover:text-white/50 hover:bg-white/5"
       }`}
       title={title}
     >
@@ -46,9 +35,6 @@ function TitleBarButton({
 
 export default function TitleBar({ hidden = false }: Props) {
   const t = useT();
-  const [isPinned, setIsPinned] = useState(false);
-  const isLocked = useWindowStore((s) => s.interactionLocked);
-  const setInteractionLocked = useWindowStore((s) => s.setInteractionLocked);
   const appWindow = getCurrentWindow();
 
   const handleMinimize = async () => {
@@ -67,48 +53,9 @@ export default function TitleBar({ hidden = false }: Props) {
     }
   };
 
-  const handlePin = async () => {
-    try {
-      const newState = !isPinned;
-      await appWindow.setAlwaysOnTop(newState);
-      await invoke("refresh_window_glass");
-      setIsPinned(newState);
-    } catch (err) {
-      console.error("setAlwaysOnTop failed:", err);
-    }
-  };
-
-  const handleLock = async () => {
-    try {
-      const newState = !isLocked;
-      await invoke("set_window_interaction_locked", { locked: newState });
-      setInteractionLocked(newState);
-    } catch (err) {
-      console.error("set_window_interaction_locked failed:", err);
-    }
-  };
-
-  useEffect(() => {
-    const syncState = async () => {
-      try {
-        const [top, locked] = await Promise.all([
-          appWindow.isAlwaysOnTop(),
-          invoke<boolean>("is_window_interaction_locked"),
-        ]);
-        setIsPinned(top);
-        setInteractionLocked(locked);
-      } catch {
-        // ignore
-      }
-    };
-    void syncState();
-  }, [appWindow, setInteractionLocked]);
-
   return (
     <div
-      className={`relative z-50 flex items-center h-9 select-none shrink-0 titlebar ${
-        isLocked ? "titlebar--locked" : ""
-      } ${hidden ? "invisible" : ""}`}
+      className={`relative z-50 flex items-center h-9 select-none shrink-0 titlebar ${hidden ? "invisible" : ""}`}
       onMouseLeave={(event) => {
         const next = event.relatedTarget;
         if (
@@ -122,11 +69,9 @@ export default function TitleBar({ hidden = false }: Props) {
       }}
     >
       <div
-        {...(isLocked ? {} : { "data-tauri-drag-region": true })}
+        data-tauri-drag-region
         onDoubleClick={(e) => e.preventDefault()}
-        className={`titlebar-drag flex flex-1 items-center gap-2 pl-4 pr-3 h-full min-w-0 ${
-          isLocked ? "titlebar-drag--locked" : ""
-        }`}
+        className="titlebar-drag flex flex-1 items-center gap-2 pl-4 pr-3 h-full min-w-0"
       >
         <div className="h-4 w-5 shrink-0 flex items-center justify-center pointer-events-none">
           <svg
@@ -148,76 +93,8 @@ export default function TitleBar({ hidden = false }: Props) {
         className="titlebar-actions flex items-center gap-0.5 pr-3 shrink-0"
       >
         <TitleBarButton
-          onClick={() => void handlePin()}
-          title={isPinned ? t("titlebar.unpin") : t("titlebar.pin")}
-          active={isPinned}
-          disabled={isLocked}
-        >
-          <svg
-            className="w-3.5 h-3.5 pointer-events-none"
-            viewBox="0 0 1024 1024"
-            fill="currentColor"
-            aria-hidden
-          >
-            <path d="M829.31 607.6L548.07 234.1c-12.93-19.17-41.01-19.61-54.82-0.89L197.3 606.71c-16.05 22.28-0.45 53.49 27.19 53.49h139.06v173.38c0 26.3 21.39 48.14 48.14 48.14H612.7c26.29 0 48.13-21.39 48.13-48.14V660.2h140.4c27.19 0 43.24-30.31 28.08-52.6z" />
-            <path d="M226.72 218.06h570.5c20.95 0 37.89-16.94 37.89-37.88s-16.94-37.88-37.89-37.88h-570.5c-20.95 0-37.88 16.94-37.88 37.88s16.94 37.88 37.88 37.88z" />
-          </svg>
-        </TitleBarButton>
-
-        <TitleBarButton
-          onClick={() => void handleLock()}
-          title={isLocked ? t("titlebar.unlock") : t("titlebar.lock")}
-          active={isLocked}
-        >
-          <svg
-            className="w-3.5 h-3.5 pointer-events-none"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            {isLocked ? (
-              <>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M7 11V8a5 5 0 019.9-1"
-                />
-                <rect
-                  x="5"
-                  y="11"
-                  width="14"
-                  height="10"
-                  rx="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </>
-            ) : (
-              <>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M7 11V8a5 5 0 019 0v3"
-                />
-                <rect
-                  x="5"
-                  y="11"
-                  width="14"
-                  height="10"
-                  rx="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </>
-            )}
-          </svg>
-        </TitleBarButton>
-
-        <TitleBarButton
           onClick={() => void handleMinimize()}
           title={t("titlebar.minimize")}
-          disabled={isLocked}
         >
           <svg
             className="w-3 h-3 pointer-events-none"
@@ -234,7 +111,6 @@ export default function TitleBar({ hidden = false }: Props) {
           onClick={() => void handleHide()}
           title={t("titlebar.hideToTray")}
           dangerHover
-          disabled={isLocked}
         >
           <svg
             className="w-3 h-3 pointer-events-none"

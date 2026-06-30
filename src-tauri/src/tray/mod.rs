@@ -1,20 +1,16 @@
 /// 系统托盘：快捷操作台菜单
 
-use std::sync::Mutex;
-
-use serde::Deserialize;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     App, AppHandle, Emitter, Manager,
 };
 
-use crate::window_interaction;
 use crate::window_style;
 
 type RuntimeMenuItem = MenuItem<tauri::Wry>;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrayQuickMenuLabels {
     pub refresh: String,
@@ -22,14 +18,12 @@ pub struct TrayQuickMenuLabels {
     pub settings: String,
     pub show_window: String,
     pub hide_window: String,
-    pub unlock: String,
     pub quit: String,
 }
 
-struct StoredLabels(Mutex<Option<TrayQuickMenuLabels>>);
+struct StoredLabels(std::sync::Mutex<Option<TrayQuickMenuLabels>>);
 
 pub struct TrayQuickMenu {
-    pub unlock: RuntimeMenuItem,
     pub refresh: RuntimeMenuItem,
     pub analysis: RuntimeMenuItem,
     pub settings: RuntimeMenuItem,
@@ -45,6 +39,7 @@ fn main_window_visible(app: &AppHandle) -> bool {
 
 fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_skip_taskbar(false);
         window_style::prepare_show(&window);
         let _ = window.show();
         let _ = window.set_focus();
@@ -65,10 +60,8 @@ pub fn refresh_quick_menu(app: &AppHandle) -> Result<(), String> {
         .try_state::<TrayQuickMenu>()
         .ok_or("tray menu not initialized")?;
 
-    let locked = window_interaction::is_locked();
     let visible = main_window_visible(app);
 
-    menu.unlock.set_text(&labels.unlock).map_err(|e| e.to_string())?;
     menu.refresh.set_text(&labels.refresh).map_err(|e| e.to_string())?;
     menu.analysis
         .set_text(&labels.analysis)
@@ -85,21 +78,6 @@ pub fn refresh_quick_menu(app: &AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     menu.quit.set_text(&labels.quit).map_err(|e| e.to_string())?;
 
-    menu.unlock.set_enabled(locked).map_err(|e| e.to_string())?;
-    menu.refresh
-        .set_enabled(!locked)
-        .map_err(|e| e.to_string())?;
-    menu.analysis
-        .set_enabled(!locked)
-        .map_err(|e| e.to_string())?;
-    menu.settings
-        .set_enabled(!locked)
-        .map_err(|e| e.to_string())?;
-    menu.toggle_window
-        .set_enabled(!locked)
-        .map_err(|e| e.to_string())?;
-    menu.quit.set_enabled(!locked).map_err(|e| e.to_string())?;
-
     Ok(())
 }
 
@@ -114,13 +92,6 @@ pub fn store_labels(app: &AppHandle, labels: TrayQuickMenuLabels) -> Result<(), 
 
 fn handle_menu_event(app: &AppHandle, id: &str) {
     match id {
-        "unlock" => {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window_interaction::set_interaction_locked(&window, false);
-                let _ = app.emit("interaction-lock-changed", false);
-                let _ = refresh_quick_menu(app);
-            }
-        }
         "refresh" => {
             let handle = app.clone();
             tauri::async_runtime::spawn(async move {
@@ -154,7 +125,6 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
 }
 
 pub fn setup(app: &App) -> tauri::Result<()> {
-    let unlock = MenuItem::with_id(app, "unlock", "解锁窗口", false, None::<&str>)?;
     let refresh = MenuItem::with_id(app, "refresh", "刷新数据", true, None::<&str>)?;
     let analysis = MenuItem::with_id(app, "analysis", "AI 分析", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
@@ -167,7 +137,6 @@ pub fn setup(app: &App) -> tauri::Result<()> {
     let menu = Menu::with_items(
         app,
         &[
-            &unlock,
             &refresh,
             &analysis,
             &settings,
@@ -179,19 +148,19 @@ pub fn setup(app: &App) -> tauri::Result<()> {
     )?;
 
     app.manage(TrayQuickMenu {
-        unlock,
         refresh,
         analysis,
         settings,
         toggle_window,
         quit,
     });
-    app.manage(StoredLabels(Mutex::new(None)));
+    app.manage(StoredLabels(std::sync::Mutex::new(None)));
 
-    let _tray = TrayIconBuilder::with_id("main")
-        .tooltip("DS-Monitor")
+    let _tray = TrayIconBuilder::with_id("oc-monitor-tray")
+        .tooltip("OC-Monitor")
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
+        .show_menu_on_left_click(false)
         .on_menu_event(|app_handle, event| {
             handle_menu_event(app_handle, event.id.as_ref());
         })
@@ -230,12 +199,7 @@ pub fn setup(app: &App) -> tauri::Result<()> {
 
 /// 更新托盘图标提示文本
 pub fn update_tooltip(app_handle: &AppHandle, text: &str) {
-    if let Some(tray) = app_handle.tray_by_id("main") {
+    if let Some(tray) = app_handle.tray_by_id("oc-monitor-tray") {
         let _ = tray.set_tooltip(Some(text));
     }
-}
-
-#[allow(dead_code)]
-pub fn update_icon_by_balance(_app_handle: &AppHandle, _balance: f64) {
-    // TODO: 余额低时切换图标
 }

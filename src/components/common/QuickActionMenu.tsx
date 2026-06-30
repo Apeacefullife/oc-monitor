@@ -15,13 +15,11 @@ interface Action {
 
 interface Props {
   state: QuickActionMenuState | null;
-  locked: boolean;
   onClose: () => void;
   onRefresh: () => void;
   onOpenAnalysis: () => void;
   onOpenSettings: () => void;
   onHideToTray: () => void;
-  onUnlock: () => void;
 }
 
 const MARGIN = 8;
@@ -54,13 +52,11 @@ function computePosition(
 
 export default function QuickActionMenu({
   state,
-  locked,
   onClose,
   onRefresh,
   onOpenAnalysis,
   onOpenSettings,
   onHideToTray,
-  onUnlock,
 }: Props) {
   const t = useT();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -68,36 +64,28 @@ export default function QuickActionMenu({
     null,
   );
 
-  const actions: Action[] = locked
-    ? [
-        {
-          id: "unlock",
-          label: t("quickAction.unlock"),
-          onClick: onUnlock,
-        },
-      ]
-    : [
-        {
-          id: "refresh",
-          label: t("quickAction.refresh"),
-          onClick: onRefresh,
-        },
-        {
-          id: "analysis",
-          label: t("quickAction.analysis"),
-          onClick: onOpenAnalysis,
-        },
-        {
-          id: "settings",
-          label: t("quickAction.settings"),
-          onClick: onOpenSettings,
-        },
-        {
-          id: "hide",
-          label: t("quickAction.hideToTray"),
-          onClick: onHideToTray,
-        },
-      ];
+  const actions: Action[] = [
+    {
+      id: "refresh",
+      label: t("quickAction.refresh"),
+      onClick: onRefresh,
+    },
+    {
+      id: "analysis",
+      label: t("quickAction.analysis"),
+      onClick: onOpenAnalysis,
+    },
+    {
+      id: "settings",
+      label: t("quickAction.settings"),
+      onClick: onOpenSettings,
+    },
+    {
+      id: "hide",
+      label: t("quickAction.hideToTray"),
+      onClick: onHideToTray,
+    },
+  ];
 
   useLayoutEffect(() => {
     if (!state || !panelRef.current) {
@@ -107,7 +95,7 @@ export default function QuickActionMenu({
 
     const { offsetWidth, offsetHeight } = panelRef.current;
     setPosition(computePosition(state.x, state.y, offsetWidth, offsetHeight));
-  }, [state, locked]);
+  }, [state]);
 
   useEffect(() => {
     if (!state) return;
@@ -144,7 +132,7 @@ export default function QuickActionMenu({
       <div ref={panelRef} className="quick-action-menu" role="menu">
         {actions.map((action, index) => (
           <div key={action.id}>
-            {index === actions.length - 1 && !locked ? (
+            {index === actions.length - 1 ? (
               <div className="quick-action-menu-divider" />
             ) : null}
             <button

@@ -1,13 +1,11 @@
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 
 mod api;
 mod auto_start;
 mod commands;
-mod scheduler;
 mod store;
 mod tray;
 mod window_style;
-mod window_interaction;
 
 /// 退出应用
 #[tauri::command]
@@ -19,6 +17,7 @@ fn quit_app(app_handle: tauri::AppHandle) {
 #[tauri::command]
 fn show_main_window(app_handle: tauri::AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.set_skip_taskbar(false);
         window_style::prepare_show(&window);
         let _ = window.show();
         let _ = window.set_focus();
@@ -27,33 +26,13 @@ fn show_main_window(app_handle: tauri::AppHandle) {
     }
 }
 
-/// 布局过渡期间暂停 resize 触发的磨玻璃刷新，避免侧边栏动画闪动
+/// 布局过渡期间暂停 resize 触发的磨玻璃刷新
 #[tauri::command]
 fn set_layout_transitioning(active: bool) {
     window_style::set_layout_transitioning(active);
 }
 
-/// 锁定窗口交互：穿透桌面，仅标题栏按钮可点击；解锁后恢复
-#[tauri::command]
-fn set_window_interaction_locked(
-    app_handle: tauri::AppHandle,
-    locked: bool,
-) -> Result<(), String> {
-    let window = app_handle
-        .get_webview_window("main")
-        .ok_or("main window not found")?;
-    window_interaction::set_interaction_locked(&window, locked)?;
-    let _ = app_handle.emit("interaction-lock-changed", locked);
-    let _ = tray::refresh_quick_menu(&app_handle);
-    Ok(())
-}
-
-#[tauri::command]
-fn is_window_interaction_locked() -> bool {
-    window_interaction::is_locked()
-}
-
-/// 重刷窗口磨玻璃（前端在置顶切换等场景调用，轻量不闪动）
+/// 重刷窗口磨玻璃
 #[tauri::command]
 fn refresh_window_glass(app_handle: tauri::AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
@@ -61,10 +40,54 @@ fn refresh_window_glass(app_handle: tauri::AppHandle) {
     }
 }
 
+/// 窗口定位到屏幕右下角
+#[tauri::command]
+fn position_window_bottom_right(app_handle: tauri::AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        position_main_window(&window);
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn position_main_window(window: &tauri::WebviewWindow) {
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::Graphics::Gdi::{
+        GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::{
+        SetWindowPos, SWP_NOACTIVATE, SWP_NOZORDER, SWP_NOSIZE,
+    };
+
+    if let Ok(hwnd_raw) = window.hwnd() {
+        unsafe {
+            let hwnd = HWND(hwnd_raw.0 as *mut _);
+            let monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            let mut mi: MONITORINFO = std::mem::zeroed();
+            mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+
+            if GetMonitorInfoW(monitor, &mut mi).as_bool() {
+                let wa = mi.rcWork;
+                if let Ok(size) = window.outer_size() {
+                    let x = ((wa.right - wa.left) - size.width as i32).max(0);
+                    let y = ((wa.bottom - wa.top) - size.height as i32).max(0);
+                    let _ = SetWindowPos(
+                        hwnd, None, x, y, 0, 0,
+                        SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE,
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn position_main_window(_window: &tauri::WebviewWindow) {}
+
 /// 隐藏主窗口
 #[tauri::command]
 fn hide_main_window(app_handle: tauri::AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.set_skip_taskbar(true);
         let _ = window.hide();
         let _ = tray::refresh_quick_menu(&app_handle);
     }
@@ -75,8 +98,10 @@ fn hide_main_window(app_handle: tauri::AppHandle) {
 fn toggle_main_window(app_handle: tauri::AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
         if window.is_visible().unwrap_or(false) {
+            let _ = window.set_skip_taskbar(true);
             let _ = window.hide();
         } else {
+            let _ = window.set_skip_taskbar(false);
             window_style::prepare_show(&window);
             let _ = window.show();
             let _ = window.set_focus();
@@ -96,19 +121,29 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            let _ = app.get_webview_window("main").map(|window| {
+                let _ = window.show();
+                let _ = window.set_focus();
+            });
+        }))
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_skip_taskbar(true);
                 window_style::apply_force(&window);
                 window_style::start_cursor_bounds_watchdog(app.handle().clone(), "main");
+                // 定位到右下角再展示
+                position_main_window(&window);
                 window_style::apply_deferred(window.clone());
                 window_style::start_watchdog(window.clone());
+                let _ = window.set_skip_taskbar(false);
                 let _ = window.show();
                 let _ = window.set_focus();
             }
 
             tray::setup(app)?;
 
-            // 后台静默轮询（余额 + 平台用量，不弹窗）
+            // 后台静默轮询（从 CCSwitch 数据库读取用量）
             let bg = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
@@ -123,6 +158,13 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             window_style::on_window_event(window, event);
+            // 点击窗口外部自动隐藏
+            if let tauri::WindowEvent::Focused(false) = event {
+                if let Some(w) = window.app_handle().get_webview_window("main") {
+                    let _ = w.hide();
+                    let _ = tray::refresh_quick_menu(&window.app_handle());
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             quit_app,
@@ -131,15 +173,10 @@ pub fn run() {
             toggle_main_window,
             refresh_window_glass,
             set_layout_transitioning,
-            set_window_interaction_locked,
-            is_window_interaction_locked,
+            position_window_bottom_right,
             get_version,
-            commands::api::get_balance,
             commands::api::get_usage,
-            commands::api::get_daily_usage,
-            commands::api::get_monthly_cost,
-            commands::settings::save_api_key,
-            commands::settings::get_api_key,
+            commands::api::get_raw_records,
             commands::settings::save_setting,
             commands::settings::get_setting,
             commands::settings::get_auto_start,
@@ -154,8 +191,6 @@ pub fn run() {
             commands::tray_cmd::sync_tray_quick_menu,
             commands::refresh::silent_refresh,
             commands::analysis::analyze_usage_ai,
-            commands::platform::has_platform_session,
-            commands::platform::open_platform_login,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
