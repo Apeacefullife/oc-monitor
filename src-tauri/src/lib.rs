@@ -153,7 +153,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
                 loop {
-                    let _ = commands::refresh::silent_refresh(bg.clone()).await;
+                    let _ = commands::refresh::silent_refresh(bg.clone(), None).await;
                     let secs = commands::settings::load_refresh_interval(&bg);
                     tokio::time::sleep(std::time::Duration::from_secs(secs)).await;
                 }
@@ -195,6 +195,7 @@ pub fn run() {
             commands::tray_cmd::update_tray_tooltip,
             commands::tray_cmd::sync_tray_quick_menu,
             commands::refresh::silent_refresh,
+            commands::refresh::set_data_source,
             commands::analysis::analyze_usage_ai,
         ])
         .run(tauri::generate_context!())

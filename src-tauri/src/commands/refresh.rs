@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 use tauri::{AppHandle, Emitter};
 
@@ -8,6 +8,31 @@ use crate::api::ccswitch_reader;
 use crate::api::usage_aggregate::aggregate_usage;
 
 static SILENT_REFRESH_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+// 当前数据源：0 = opencode，1 = claude。供后台静默刷新和托盘菜单读取，
+// 保证不覆盖用户在 UI 上选择的 provider。
+static DATA_SOURCE: AtomicU8 = AtomicU8::new(0);
+
+const DS_OPENCODE: u8 = 0;
+const DS_CLAUDE: u8 = 1;
+
+/// 前端切换数据源时调用，同步到后端全局状态。
+/// `silent_refresh` 不带 data_source 参数时会读这个值。
+#[tauri::command]
+pub fn set_data_source(data_source: String) {
+    let v = match data_source.as_str() {
+        "claude" => DS_CLAUDE,
+        _ => DS_OPENCODE,
+    };
+    DATA_SOURCE.store(v, Ordering::SeqCst);
+}
+
+fn current_data_source() -> String {
+    match DATA_SOURCE.load(Ordering::SeqCst) {
+        DS_CLAUDE => "claude".to_string(),
+        _ => "opencode".to_string(),
+    }
+}
 
 struct RefreshGuard;
 
@@ -19,7 +44,9 @@ impl Drop for RefreshGuard {
 
 /// 后台静默刷新：从 CCSwitch 读取用量
 ///
-/// `data_source`：`"opencode"`（默认）/`"claude"`
+/// `data_source`：
+/// - `Some(s)` — 立即按 `s` 拉取，同时把 `s` 存到后端全局状态
+/// - `None` — 读后端全局状态（用户最近一次选择）
 #[tauri::command]
 pub async fn silent_refresh(
     app_handle: AppHandle,
@@ -32,7 +59,15 @@ pub async fn silent_refresh(
         return Ok(false);
     }
     let _guard = RefreshGuard;
-    let ds = data_source.unwrap_or_else(|| "opencode".to_string());
+
+    // 解析最终数据源
+    let ds = match data_source {
+        Some(s) => {
+            set_data_source(s.clone());
+            s
+        }
+        None => current_data_source(),
+    };
 
     // 读取所有记录，再按 dataSource 过滤
     let records = match ccswitch_reader::read_all_records() {

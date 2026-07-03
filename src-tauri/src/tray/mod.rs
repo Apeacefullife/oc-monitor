@@ -95,7 +95,7 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
         "refresh" => {
             let handle = app.clone();
             tauri::async_runtime::spawn(async move {
-                let _ = crate::commands::refresh::silent_refresh(handle.clone()).await;
+                let _ = crate::commands::refresh::silent_refresh(handle.clone(), None).await;
                 let _ = handle.emit("tray-refresh-done", ());
             });
         }
