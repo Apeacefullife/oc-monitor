@@ -4,26 +4,30 @@
 
 <div align="center">
 
-# DS-Monitor
+# OC-Monitor
 
-**轻量、透明的 DeepSeek API 桌面监控工具**
+**轻量、透明的 OpenCode / Claude Code 用量桌面监控工具**
 
-实时查看余额、Token 用量与消费趋势 · 平台用量同步 · AI 智能分析
+实时查看 Token 用量、模型分布、消费趋势 · AI 智能分析报告
 
 <br />
 
-[![GitHub Repo](https://img.shields.io/badge/GitHub-milusvip%2FDS--Monitor-181717?logo=github)](https://github.com/milusvip/DS-Monitor)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Apeacefullife%2Foc--monitor-181717?logo=github)](https://github.com/Apeacefullife/oc-monitor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://github.com/milusvip/DS-Monitor)
+[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://github.com/Apeacefullife/oc-monitor)
 [![Tauri](https://img.shields.io/badge/Built%20with-Tauri%202-FFC131?logo=tauri)](https://tauri.app/)
 [![React](https://img.shields.io/badge/UI-React%2019-61DAFB?logo=react)](https://react.dev/)
 
 <br />
 
 Windows 轻量级桌面监控工具，常驻系统托盘。  
-实时掌握 **DeepSeek API** 余额与 Token 消耗，同步平台用量，一键查看趋势与 AI 分析报告。
+实时掌握 **OpenCode / Claude Code** 的 Token 消耗、模型分布与消费趋势，一键生成 AI 用量报告。
 
 </div>
+
+---
+
+> 本项目由 [DS-Monitor](https://github.com/milusvip/DS-Monitor) 改造而来，从监控 DeepSeek API 转向监控本地 OpenCode / Claude Code 的真实调用数据。
 
 ---
 
@@ -31,12 +35,26 @@ Windows 轻量级桌面监控工具，常驻系统托盘。
 
 | 模块 | 说明 |
 | :--- | :--- |
-| **账户余额** | API 实时余额、可用状态、低余额红色呼吸提醒、预估可用天数 |
-| **用量统计** | 当日消耗、本月消费、分模型进度条、近 7 日消耗趋势图（悬浮查看明细） |
-| **平台同步** | 登录 DeepSeek 平台后后台静默同步用量，无需反复手动刷新 |
-| **AI 分析** | 缓存命中率、输入 Token 构成、7 日趋势、AI 生成用量报告 |
+| **双数据源** | 同时读取 `~/.claude/projects/` 下 Claude Code 的 JSONL 日志，以及 `~/.cc-switch/cc-switch.db` 中当前激活的 OpenCode provider 记录 |
+| **Token 统计** | 实时聚合 Input / Cache-Read / Cache-Creation / Output Token，分模型占比 |
+| **消费趋势** | 当日消耗、本月消费、近 7 日消费趋势图，悬停查看明细 |
+| **AI 分析** | 缓存命中率、Token 构成、7 日趋势曲线、一键 AI 用量报告 |
 | **桌面体验** | 无边框毛玻璃、系统托盘、窗口置顶、锁定防误触、自定义光标 |
-| **个性设置** | API Key、刷新间隔、开机自启、中英文、一键清除本地数据 |
+| **本地隐私** | 全部数据在本地解析，**不上传任何用量到第三方服务器** |
+| **个性设置** | 刷新间隔、开机自启、中英文切换、一键清除本地数据 |
+
+---
+
+## 它读取什么数据？
+
+OC-Monitor **完全在本地**解析你的 OpenCode / Claude Code 用量，不修改任何源文件。
+
+| 来源 | 路径 | 内容 |
+| :--- | :--- | :--- |
+| Claude Code JSONL | `~/.claude/projects/**/*.jsonl` | assistant 消息中的 `usage` 字段（input / cache_read / cache_creation / output tokens、模型、时间戳） |
+| CCSwitch SQLite | `~/.cc-switch/cc-switch.db` | `proxy_request_logs` 表，自动筛选 `app_type` 下当前激活的 provider（默认 `_opencode_session`） |
+
+读取过程只读不改，断网环境下同样工作。
 
 ---
 
@@ -49,7 +67,7 @@ Windows 轻量级桌面监控工具，常驻系统托盘。
 <tr>
 <td align="center" valign="top" width="50%">
 <b>主面板</b><br />
-<sub>余额 · 消耗 · 模型 · 趋势</sub><br /><br />
+<sub>用量 · 模型 · 趋势</sub><br /><br />
 <img src="docs/screenshots/01-main.png" alt="主面板" width="320" />
 </td>
 <td align="center" valign="top" width="50%">
@@ -61,7 +79,7 @@ Windows 轻量级桌面监控工具，常驻系统托盘。
 <tr>
 <td align="center" valign="top" width="50%">
 <b>设置</b><br />
-<sub>API Key · 刷新 · 开机自启</sub><br /><br />
+<sub>刷新间隔 · 开机自启 · 语言</sub><br /><br />
 <img src="docs/screenshots/02-settings.png" alt="设置" width="320" />
 </td>
 <td align="center" valign="top" width="50%">
@@ -97,12 +115,13 @@ Windows 轻量级桌面监控工具，常驻系统托盘。
 - [Node.js](https://nodejs.org/) 18+
 - [pnpm](https://pnpm.io/)
 - [Rust](https://www.rust-lang.org/tools/install)（Tauri 构建）
+- 本机已安装并使用过 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 或 [OpenCode](https://opencode.ai/)
 
 ### 安装依赖并运行
 
 ```bash
-git clone https://github.com/milusvip/DS-Monitor.git
-cd DS-Monitor
+git clone https://github.com/Apeacefullife/oc-monitor.git
+cd oc-monitor
 pnpm install
 pnpm tauri dev
 ```
@@ -120,21 +139,18 @@ pnpm tauri build
 ## 使用指南
 
 ```
-① 设置 API Key  →  ② 验证通过  →  ③ 平台登录（可选）  →  ④ 主面板查看数据
+① 启动 OC-Monitor  →  ② 自动扫描本地用量  →  ③ 主面板查看  →  ④ 一键 AI 报告
 ```
 
-1. **配置 API Key**  
-   点击右上角 ⚙️ 设置，填入 DeepSeek API Key 并验证。
+1. **首次启动**  
+   OC-Monitor 自动扫描 `~/.claude/projects/` 和 `~/.cc-switch/` 下的数据，无需任何账号配置。
 
-2. **平台登录（推荐）**  
-   用量明细需平台会话。按设置页或主界面提示登录，进入用量页后后台自动同步。
-
-3. **日常查看**  
-   - 主面板：余额、当日/本月消耗、模型用量、趋势图（悬停柱子看明细）  
-   - AI 分析：命中率、缓存构成、AI 报告  
+2. **日常查看**  
+   - 主面板：今日 / 本月消费、模型占比、近 7 日趋势（悬停柱子看明细）  
+   - AI 分析：缓存命中率、Token 构成、AI 报告  
    - 托盘：关闭窗口后驻留托盘，双击或右键唤回
 
-4. **常用操作**  
+3. **常用操作**  
    - 标题栏：置顶 📌、锁定 🔒、最小化、关闭到托盘  
    - 右键菜单：刷新、打开分析/设置、隐藏到托盘  
    - 设置：调整刷新间隔、开机自启、切换语言
@@ -154,45 +170,31 @@ pnpm tauri dev
 pnpm build
 ```
 
-技术栈：**Tauri 2** · **React 19** · **TypeScript** · **Tailwind CSS 4** · **Zustand** · **ECharts**
+技术栈：**Tauri 2** · **React 19** · **TypeScript** · **Tailwind CSS 4** · **Zustand** · **ECharts** · **rusqlite**
 
 ---
 
 ## 隐私说明
 
-- API Key 使用系统级存储加密保存在本机
-- 不向第三方服务器上传 Key 或账户数据
-- AI 分析报告通过你的 API Key 调用 DeepSeek 接口生成
-- 「清除所有数据」可一键删除本地 Key、登录态与缓存
+- 全部用量数据 **仅在你的本机解析**，不向任何外部服务器上传
+- 「清除所有数据」可一键删除本地缓存与会话
+- 与 Claude Code / OpenCode 官方无关联，为独立第三方工具
 
 ---
 
 ## 开源与贡献
 
-仓库地址：**[github.com/milusvip/DS-Monitor](https://github.com/milusvip/DS-Monitor)**
+仓库地址：**[github.com/Apeacefullife/oc-monitor](https://github.com/Apeacefullife/oc-monitor)**
 
 欢迎 Star ⭐、提交 Issue 反馈问题、或发 Pull Request 参与贡献。
 
 ---
 
-## 支持作者（可选）
+## 致谢
 
-如果 DS-Monitor 对你有帮助，欢迎自愿赞赏。  
-**不赞赏也完全不影响使用。**
-
-<p align="center">
-
-| 微信支付 | 支付宝 |
-| :---: | :---: |
-| <img src="src/assets/image/wx.jpg" alt="微信赞赏" width="200" /> | <img src="src/assets/image/zfb.jpg" alt="支付宝赞赏" width="200" /> |
-
-</p>
-
----
-
-## 免责声明
-
-本项目为**第三方开源工具**，与 DeepSeek 官方无关联，不由 DeepSeek 维护或背书。使用本软件即表示你自行承担 API 调用与账户安全相关风险。
+- 灵感与基础架构来自 [milusvip/DS-Monitor](https://github.com/milusvip/DS-Monitor)
+- UI 框架：[Tauri 2](https://tauri.app/) + [React 19](https://react.dev/)
+- 图表：[Apache ECharts](https://echarts.apache.org/)
 
 ---
 

@@ -18,6 +18,46 @@ fn canonical_model(name: &str) -> String {
     if n.contains("v4-flash") || n.contains("deepseek-chat") {
         return "deepseek-v4-flash".to_string();
     }
+    // MiMo
+    if n.contains("mimo-v2.5-pro") || n.contains("mimo_v2.5_pro") {
+        return "mimo-v2.5-pro".to_string();
+    }
+    if n.contains("mimo-v2.5") || n.contains("mimo_v2.5") {
+        return "mimo-v2.5".to_string();
+    }
+    if n.contains("mimo-v2") || n.contains("mimo_v2") {
+        return "mimo-v2".to_string();
+    }
+    // GLM
+    if n.contains("glm-5.2") || n.contains("glm_5.2") {
+        return "glm-5.2".to_string();
+    }
+    if n.contains("glm-5.1") || n.contains("glm_5.1") {
+        return "glm-5.1".to_string();
+    }
+    if n.contains("glm-5") || n.contains("glm_5") {
+        return "glm-5".to_string();
+    }
+    // Kimi
+    if n.contains("kimi-k2.7-code") || n.contains("kimi_k2.7_code") {
+        return "kimi-k2.7-code".to_string();
+    }
+    if n.contains("kimi-k2.6") || n.contains("kimi_k2.6") {
+        return "kimi-k2.6".to_string();
+    }
+    if n.contains("kimi-k2") || n.contains("kimi_k2") {
+        return "kimi-k2".to_string();
+    }
+    // MiniMax
+    if n.contains("minimax-m3") || n.contains("MiniMax-m3") || n.contains("MiniMax_m3") {
+        return "minimax-m3".to_string();
+    }
+    if n.contains("minimax-m2.7") || n.contains("MiniMax-m2.7") || n.contains("MiniMax_m2.7") {
+        return "minimax-m2.7".to_string();
+    }
+    if n.contains("minimax-m2.5") || n.contains("MiniMax-m2.5") || n.contains("MiniMax_m2.5") {
+        return "minimax-m2.5".to_string();
+    }
     // Claude
     if n.contains("claude-sonnet-4-6") || n.contains("claude-sonnet-4") {
         return "claude-sonnet-4".to_string();
@@ -59,6 +99,21 @@ fn canonical_model(name: &str) -> String {
         return "llama-3".to_string();
     }
     // Qwen
+    if n.contains("qwen3.7-max") {
+        return "qwen3.7-max".to_string();
+    }
+    if n.contains("qwen3.7-plus") && (n.contains(">256k") || n.contains("gt256k")) {
+        return "qwen3.7-plus-gt256k".to_string();
+    }
+    if n.contains("qwen3.7-plus") {
+        return "qwen3.7-plus-le256k".to_string();
+    }
+    if n.contains("qwen3.6-plus") && (n.contains(">256k") || n.contains("gt256k")) {
+        return "qwen3.6-plus-gt256k".to_string();
+    }
+    if n.contains("qwen3.6-plus") {
+        return "qwen3.6-plus-le256k".to_string();
+    }
     if n.contains("qwen") {
         return "qwen".to_string();
     }

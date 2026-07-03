@@ -5,6 +5,7 @@ import { useSettingsStore } from "../../stores/useSettingsStore";
 import { useAppStore } from "../../stores/useAppStore";
 import { useI18nStore, useT, type Locale } from "../../i18n";
 import { GITHUB_REPO_URL, REFRESH_INTERVAL_VALUES } from "../../utils/constants";
+import { TRACKED_MODEL_IDS, modelDisplayName } from "../../utils/modelUsage";
 import ToggleSwitch from "../common/ToggleSwitch";
 
 interface Props {
@@ -34,8 +35,10 @@ export default forwardRef<HTMLElement, Props>(function Settings(
   const {
     refreshInterval,
     autoStart,
+    selectedModels,
     applyAutoStart,
     applyRefreshInterval,
+    toggleModel,
   } = useSettingsStore();
 
   const [clearing, setClearing] = useState(false);
@@ -140,6 +143,31 @@ export default forwardRef<HTMLElement, Props>(function Settings(
                 {t("settings.dataSource")}
               </div>
               <p className="settings-ui-note">{t("settings.dataSourceHint")}</p>
+            </section>
+
+              <div className="settings-ui-divider" />
+
+            <section className="settings-ui-block">
+              <div className="settings-ui-caption">
+                {t("settings.modelSelect")}
+              </div>
+              <p className="settings-ui-note">{t("settings.modelSelectHint")}</p>
+              <div className="settings-ui-model-chips">
+                {TRACKED_MODEL_IDS.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => toggleModel(id)}
+                    className={`settings-ui-model-chip ${
+                      selectedModels.includes(id)
+                        ? "settings-ui-model-chip--on"
+                        : "settings-ui-model-chip--off"
+                    }`}
+                  >
+                    {modelDisplayName(id)}
+                  </button>
+                ))}
+              </div>
             </section>
 
               <div className="settings-ui-divider" />

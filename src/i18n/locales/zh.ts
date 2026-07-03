@@ -52,6 +52,8 @@ export const zh = {
     github: "开源仓库",
     githubOpen: "GitHub",
     githubHint: "基于 DS-Monitor 改造",
+    modelSelect: "显示模型",
+    modelSelectHint: "选择要在面板中显示的模型，至少保留一个。",
   },
   balance: {
     title: "本月消耗",

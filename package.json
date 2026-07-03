@@ -1,7 +1,8 @@
 {
-  "name": "ds-monitor",
+  "name": "oc-monitor",
   "private": true,
   "version": "0.1.0",
+  "description": "Lightweight Windows desktop monitor for OpenCode / Claude Code token usage & cost (Tauri 2 + React 19).",
   "type": "module",
   "scripts": {
     "dev": "vite",

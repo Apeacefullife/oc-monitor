@@ -128,6 +128,11 @@ pub fn run() {
             });
         }))
         .setup(|app| {
+            // 默认开启开机自启
+            if !crate::auto_start::is_enabled() {
+                let _ = crate::auto_start::enable();
+            }
+
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_skip_taskbar(true);
                 window_style::apply_force(&window);

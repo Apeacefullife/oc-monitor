@@ -55,6 +55,7 @@ export interface AppSettings {
   auto_start: boolean;
   dark_mode: boolean;
   language: "zh" | "en";
+  selected_models: string[];
 }
 
 /** 应用状态 */

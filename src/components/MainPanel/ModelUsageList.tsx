@@ -10,6 +10,7 @@ import {
 interface Props {
   models: DailyUsage[];
   currency?: string;
+  selectedModels?: string[];
 }
 
 const MIN_BAR_WIDTH = 4;
@@ -48,9 +49,13 @@ function renderUsageBar(
 export default function ModelUsageList({
   models,
   currency = "CNY",
+  selectedModels,
 }: Props) {
   const t = useT();
-  const rows = buildTrackedModelUsage(models);
+  let rows = buildTrackedModelUsage(models);
+  if (selectedModels && selectedModels.length > 0) {
+    rows = rows.filter((m) => selectedModels.includes(m.model));
+  }
   const modelTotalTokens = sumTokens(rows.filter((m) => m.total_tokens > 0));
   const hasAnyUsage = modelTotalTokens > 0;
 

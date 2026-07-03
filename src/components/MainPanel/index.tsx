@@ -1,4 +1,5 @@
 import type { DailyUsage, MonthlyCost } from "../../types";
+import { useSettingsStore } from "../../stores/useSettingsStore";
 import BalanceCard from "./BalanceCard";
 import TodayUsage from "./TodayUsage";
 import ThisWeekUsage from "./ThisWeekUsage";
@@ -20,6 +21,8 @@ export default function MainPanel({
   usageCurrency = "USD",
   hasDailyGranularity = true,
 }: Props) {
+  const selectedModels = useSettingsStore((s) => s.selectedModels);
+
   return (
     <>
       <BalanceCard dailyUsage={dailyUsage} />
@@ -36,7 +39,7 @@ export default function MainPanel({
         />
       </div>
 
-      <ModelUsageList models={modelUsage} currency={usageCurrency} />
+      <ModelUsageList models={modelUsage} currency={usageCurrency} selectedModels={selectedModels} />
 
       <UsageTrendChart dailyUsage={dailyUsage} />
     </>

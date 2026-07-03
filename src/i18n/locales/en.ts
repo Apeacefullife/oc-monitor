@@ -54,6 +54,8 @@ export const en = {
     github: "Open source",
     githubOpen: "GitHub",
     githubHint: "Forked from DS-Monitor",
+    modelSelect: "Visible models",
+    modelSelectHint: "Choose which models to show on the panel. Keep at least one.",
   },
   balance: {
     title: "Monthly",
