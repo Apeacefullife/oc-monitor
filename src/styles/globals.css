@@ -589,6 +589,28 @@ button:focus-visible {
   flex-direction: column;
   justify-content: flex-start;
   gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  /* 留出 footer 视觉间距，避免与最后一个 block 紧贴 */
+  padding-bottom: 0.5rem;
+}
+
+.settings-ui-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-ui-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-ui-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+
+.settings-ui-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .settings-ui-block {
@@ -890,13 +912,19 @@ button:focus-visible {
 
 .settings-ui-foot {
   flex-shrink: 0;
-  padding-top: 1rem;
+  padding: 0.75rem 0 0.5rem;
   margin-top: auto;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.1) 60%,
+    transparent 100%
+  );
 }
 
 .settings-ui-foot--confirm {
