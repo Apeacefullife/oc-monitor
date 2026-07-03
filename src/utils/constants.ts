@@ -5,7 +5,7 @@ export const REFRESH_INTERVAL_VALUES = [30, 60, 120, 300] as const;
 export const DEFAULT_REFRESH_INTERVAL = 60;
 
 /** 开源仓库 */
-export const GITHUB_REPO_URL = "https://github.com/milusvip/DS-Monitor";
+export const GITHUB_REPO_URL = "https://github.com/Apeacefullife/oc-monitor";
 
 /** 缓存键名 */
 export const CACHE_KEYS = {

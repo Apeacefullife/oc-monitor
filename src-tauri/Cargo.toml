@@ -2,7 +2,7 @@
 name = "oc-monitor"
 version = "0.1.0"
 description = "OC-Monitor - Windows 桌面版，监控 OpenCode Claude Code 用量"
-authors = ["you"]
+authors = ["Apeacefullife"]
 edition = "2021"
 
 [lib]
