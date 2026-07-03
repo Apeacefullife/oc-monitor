@@ -6,6 +6,7 @@ import type {
   MonthlyCost,
   NormalizedUsage,
 } from "../types";
+import { useSettingsStore } from "./useSettingsStore";
 
 function hasMeaningfulUsage(usage: NormalizedUsage | null | undefined): boolean {
   if (!usage) return false;
@@ -77,7 +78,8 @@ export const useAppStore = create<AppState>((set) => ({
   fetchData: async () => {
     set({ loading: true, error: null });
     try {
-      await invoke("silent_refresh");
+      const ds = useSettingsStore.getState().dataSource;
+      await invoke("silent_refresh", { dataSource: ds });
     } catch (err) {
       set({ error: String(err), loading: false });
     }

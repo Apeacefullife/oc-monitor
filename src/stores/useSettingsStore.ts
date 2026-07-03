@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import type { RefreshInterval } from "../types";
+import type { DataSource, RefreshInterval } from "../types";
 import { DEFAULT_REFRESH_INTERVAL } from "../utils/constants";
 import { TRACKED_MODEL_IDS } from "../utils/modelUsage";
 import { useAppStore } from "./useAppStore";
 
 const STORAGE_KEY = "oc_monitor_selected_models";
+const DATA_SOURCE_KEY = "oc_monitor_data_source";
 
 function loadSelectedModels(): string[] {
   try {
@@ -22,11 +23,26 @@ function saveSelectedModels(models: string[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(models));
 }
 
+function loadDataSource(): DataSource {
+  try {
+    const v = localStorage.getItem(DATA_SOURCE_KEY);
+    if (v === "opencode" || v === "claude") return v;
+  } catch {}
+  return "opencode";
+}
+
+function saveDataSource(s: DataSource) {
+  try {
+    localStorage.setItem(DATA_SOURCE_KEY, s);
+  } catch {}
+}
+
 interface SettingsState {
   refreshInterval: number;
   autoStart: boolean;
   darkMode: boolean;
   selectedModels: string[];
+  dataSource: DataSource;
   settingsInitialized: boolean;
 
   setRefreshInterval: (interval: number) => void;
@@ -34,6 +50,8 @@ interface SettingsState {
   setDarkMode: (enabled: boolean) => void;
   setSelectedModels: (models: string[]) => void;
   toggleModel: (modelId: string) => void;
+  setDataSource: (source: DataSource) => void;
+  applyDataSource: (source: DataSource) => Promise<void>;
   initSettings: () => Promise<void>;
   applyAutoStart: (enabled: boolean) => Promise<void>;
   applyRefreshInterval: (interval: number) => Promise<void>;
@@ -46,6 +64,7 @@ const initialState = {
   autoStart: true,
   darkMode: true,
   selectedModels: loadSelectedModels(),
+  dataSource: loadDataSource(),
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -71,6 +90,25 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ selectedModels: next });
   },
 
+  setDataSource: (source) => {
+    saveDataSource(source);
+    set({ dataSource: source });
+  },
+
+  applyDataSource: async (source) => {
+    const previous = get().dataSource;
+    saveDataSource(source);
+    set({ dataSource: source });
+    try {
+      // 切换后立即按新数据源刷新一次
+      await useAppStore.getState().fetchData();
+    } catch (err) {
+      set({ dataSource: previous });
+      saveDataSource(previous);
+      throw err;
+    }
+  },
+
   initSettings: async () => {
     if (get().settingsInitialized) return;
     try {
@@ -86,6 +124,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       useAppStore.getState().updateSettings({
         auto_start: autoStart,
         refresh_interval: refreshInterval as RefreshInterval,
+        data_source: get().dataSource,
       });
     } catch {
       set({ settingsInitialized: true });

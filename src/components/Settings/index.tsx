@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useSettingsStore } from "../../stores/useSettingsStore";
 import { useAppStore } from "../../stores/useAppStore";
 import { useI18nStore, useT, type Locale } from "../../i18n";
+import type { DataSource } from "../../types";
 import { GITHUB_REPO_URL, REFRESH_INTERVAL_VALUES } from "../../utils/constants";
 import { TRACKED_MODEL_IDS, modelDisplayName } from "../../utils/modelUsage";
 import ToggleSwitch from "../common/ToggleSwitch";
@@ -18,6 +19,14 @@ const LANG_OPTIONS: { value: Locale; labelKey: "settings.languageZh" | "settings
     { value: "zh", labelKey: "settings.languageZh" },
     { value: "en", labelKey: "settings.languageEn" },
   ];
+
+const DATA_SOURCE_OPTIONS: {
+  value: DataSource;
+  labelKey: "settings.dataSourceOpencode" | "settings.dataSourceClaude";
+}[] = [
+  { value: "opencode", labelKey: "settings.dataSourceOpencode" },
+  { value: "claude", labelKey: "settings.dataSourceClaude" },
+];
 
 function refreshLabel(value: number, t: ReturnType<typeof useT>) {
   if (value < 60) return t("settings.refreshSeconds", { n: value });
@@ -36,9 +45,11 @@ export default forwardRef<HTMLElement, Props>(function Settings(
     refreshInterval,
     autoStart,
     selectedModels,
+    dataSource,
     applyAutoStart,
     applyRefreshInterval,
     toggleModel,
+    applyDataSource,
   } = useSettingsStore();
 
   const [clearing, setClearing] = useState(false);
@@ -69,6 +80,10 @@ export default forwardRef<HTMLElement, Props>(function Settings(
   const handleLanguageChange = (lang: Locale) => {
     setLocale(lang);
     useAppStore.getState().updateSettings({ language: lang });
+  };
+
+  const handleDataSourceChange = (source: DataSource) => {
+    void applyDataSource(source);
   };
 
   const handleClearAll = async () => {
@@ -142,7 +157,29 @@ export default forwardRef<HTMLElement, Props>(function Settings(
               <div className="settings-ui-caption">
                 {t("settings.dataSource")}
               </div>
-              <p className="settings-ui-note">{t("settings.dataSourceHint")}</p>
+              <div className="settings-ui-segment">
+                {DATA_SOURCE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleDataSourceChange(option.value)}
+                    className={`settings-ui-segment-btn ${
+                      dataSource === option.value
+                        ? "settings-ui-segment-btn--active"
+                        : ""
+                    }`}
+                  >
+                    {t(option.labelKey)}
+                  </button>
+                ))}
+              </div>
+              <p className="settings-ui-note">
+                {t(
+                  dataSource === "claude"
+                    ? "settings.dataSourceHintClaude"
+                    : "settings.dataSourceHintOpencode",
+                )}
+              </p>
             </section>
 
               <div className="settings-ui-divider" />

@@ -28,11 +28,11 @@ fn active_provider_id(conn: &Connection, app_type: &str) -> Result<Option<String
     Ok(result)
 }
 
-/// 从 CCSwitch 读取 OpenCode 用量记录
+/// 从 CCSwitch 读取所有 provider 的用量记录
 ///
-/// 只读取 `_opencode_session` provider 的数据，
-/// 这是 OpenCode 真实调用的全量数据。其他 provider（claude 类型）
-/// 是 CCSwitch 代理 Claude API 的记录，不属于 OpenCode 用量。
+/// 不再硬编码过滤某一种 provider：拉全 `proxy_request_logs` 表的记录，
+/// 每条 record 携带 `provider_id` 字段，前端或上层按 dataSource 选项
+/// 自行过滤（OpenCode 模式只看 `_opencode_session`，Claude 模式看 claude provider）。
 pub fn read_all_records() -> Result<Vec<TokenUsageRecord>, String> {
     let path = db_path()?;
     if !path.exists() {
@@ -45,9 +45,8 @@ pub fn read_all_records() -> Result<Vec<TokenUsageRecord>, String> {
     let mut stmt = conn
         .prepare(
             "SELECT created_at, model, input_tokens, output_tokens,
-                    cache_read_tokens, cache_creation_tokens, total_cost_usd
+                    cache_read_tokens, cache_creation_tokens, total_cost_usd, provider_id
              FROM proxy_request_logs
-             WHERE provider_id = '_opencode_session'
              ORDER BY created_at ASC",
         )
         .map_err(|e| format!("查询准备失败: {e}"))?;
@@ -61,6 +60,7 @@ pub fn read_all_records() -> Result<Vec<TokenUsageRecord>, String> {
             let cache_read: i64 = row.get(4)?;
             let cache_creation: i64 = row.get(5)?;
             let _cost_usd: String = row.get(6)?;
+            let provider_id: String = row.get(7).unwrap_or_else(|_| String::new());
 
             let input = input_tokens.max(0) as u64;
             let output = output_tokens.max(0) as u64;
@@ -82,6 +82,7 @@ pub fn read_all_records() -> Result<Vec<TokenUsageRecord>, String> {
                 total_tokens: input + output,
                 request_count: 1,
                 cost: pricing::calculate_cost(&model, input, cache_r, cache_c, output),
+                provider_id,
             }))
         })
         .map_err(|e| format!("查询执行失败: {e}"))?
@@ -89,6 +90,25 @@ pub fn read_all_records() -> Result<Vec<TokenUsageRecord>, String> {
         .collect::<Vec<_>>();
 
     Ok(records)
+}
+
+/// 按 dataSource 过滤 CCSwitch 记录
+///
+/// - `"opencode"`：只看 `_opencode_session` provider
+/// - `"claude"`：看 provider_id 含 "claude" 的所有 provider
+///   （兼容 CCSwitch 多种命名：`claude`、`_claude_session`、`claude-code` 等）
+/// - 其他 / 默认：等同于 `"opencode"`
+pub fn filter_by_data_source(records: Vec<TokenUsageRecord>, data_source: &str) -> Vec<TokenUsageRecord> {
+    match data_source {
+        "claude" => records
+            .into_iter()
+            .filter(|r| r.provider_id.to_lowercase().contains("claude"))
+            .collect(),
+        _ => records
+            .into_iter()
+            .filter(|r| r.provider_id == "_opencode_session")
+            .collect(),
+    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,8 @@
 /// 应用全局类型定义
 
+/** 数据源选项 */
+export type DataSource = "opencode" | "claude";
+
 /** 每日用量 */
 export interface DailyUsage {
   date: string;
@@ -56,6 +59,7 @@ export interface AppSettings {
   dark_mode: boolean;
   language: "zh" | "en";
   selected_models: string[];
+  data_source?: DataSource;
 }
 
 /** 应用状态 */

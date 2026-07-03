@@ -17,9 +17,14 @@ impl Drop for RefreshGuard {
     }
 }
 
-/// 后台静默刷新：从 Claude Code 日志读取用量
+/// 后台静默刷新：从 CCSwitch 读取用量
+///
+/// `data_source`：`"opencode"`（默认）/`"claude"`
 #[tauri::command]
-pub async fn silent_refresh(app_handle: AppHandle) -> Result<bool, String> {
+pub async fn silent_refresh(
+    app_handle: AppHandle,
+    data_source: Option<String>,
+) -> Result<bool, String> {
     if SILENT_REFRESH_ACTIVE
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
@@ -27,10 +32,11 @@ pub async fn silent_refresh(app_handle: AppHandle) -> Result<bool, String> {
         return Ok(false);
     }
     let _guard = RefreshGuard;
+    let ds = data_source.unwrap_or_else(|| "opencode".to_string());
 
-    // 读取所有记录（自动筛选当前激活的 OpenCode Go provider）
+    // 读取所有记录，再按 dataSource 过滤
     let records = match ccswitch_reader::read_all_records() {
-        Ok(r) => r,
+        Ok(all) => ccswitch_reader::filter_by_data_source(all, &ds),
         Err(_) => return Ok(false),
     };
 
@@ -70,6 +76,7 @@ pub async fn silent_refresh(app_handle: AppHandle) -> Result<bool, String> {
         "silent-refresh-done",
         serde_json::json!({
             "usage": usage_json,
+            "data_source": ds,
         }),
     );
 
