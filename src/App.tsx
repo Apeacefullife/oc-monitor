@@ -12,7 +12,7 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 import QuickActionMenu, {
   type QuickActionMenuState,
 } from "./components/common/QuickActionMenu";
-import type { DailyUsage } from "./types";
+import type { RawUsageRecord } from "./types";
 import {
   animateDrawerClose,
   animateDrawerOpen,
@@ -25,21 +25,8 @@ const PANEL_ANIM_MS = 320;
 const MIN_WINDOW_HEIGHT = 260;
 const MAX_WINDOW_HEIGHT = 720;
 
-interface SilentUsage {
-  daily: DailyUsage[];
-  models: DailyUsage[];
-  monthly: {
-    total_cost: number;
-    currency: string;
-    month: string;
-    total_tokens?: number;
-    request_count?: number;
-  };
-  has_daily_granularity: boolean;
-}
-
 interface SilentRefreshPayload {
-  usage?: SilentUsage | null;
+  raw_records?: RawUsageRecord[] | null;
 }
 
 function App() {
@@ -192,7 +179,7 @@ function App() {
 
     listen<SilentRefreshPayload>("silent-refresh-done", (event) => {
       applySilentRefresh({
-        usage: event.payload.usage ?? null,
+        raw_records: event.payload.raw_records ?? null,
       });
     }).then((fn) => unsubs.push(fn));
 

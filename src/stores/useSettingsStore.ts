@@ -93,6 +93,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setDataSource: (source) => {
     saveDataSource(source);
     set({ dataSource: source });
+    // 瞬时切换：仅用已有 rawRecords 重算聚合，不重新 invoke 后端
+    useAppStore.getState().recomputeForDataSource(source);
   },
 
   applyDataSource: async (source) => {
@@ -100,10 +102,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     saveDataSource(source);
     set({ dataSource: source });
     try {
-      // 同步给后端全局（让 tray/后台定时器也知道当前 dataSource）
-      await invoke("set_data_source", { dataSource: source });
-      // 切换后立即按新数据源刷新一次
-      await useAppStore.getState().fetchData();
+      // 不再 invoke 后端，dataSource 完全在前端处理
+      useAppStore.getState().recomputeForDataSource(source);
     } catch (err) {
       set({ dataSource: previous });
       saveDataSource(previous);

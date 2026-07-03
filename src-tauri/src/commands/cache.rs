@@ -10,10 +10,14 @@ pub struct CachedData {
     pub model_usage: Option<serde_json::Value>,
     pub monthly_cost: Option<serde_json::Value>,
     pub platform_usage: Option<serde_json::Value>,
+    pub raw_records: Option<serde_json::Value>,
     pub last_updated: Option<String>,
 }
 
 /// 保存缓存数据
+///
+/// `raw_records` 用于跨重启保留 CCSwitch 原始记录；前端在启动时读它，
+/// 避免每次启动都重新扫描大文件。其他聚合字段保留以便向后兼容。
 #[tauri::command]
 pub async fn save_cached_data(
     app_handle: AppHandle,
@@ -21,6 +25,7 @@ pub async fn save_cached_data(
     model_usage: Option<serde_json::Value>,
     monthly_cost: Option<serde_json::Value>,
     platform_usage: Option<serde_json::Value>,
+    raw_records: Option<serde_json::Value>,
     last_updated: Option<String>,
 ) -> Result<bool, String> {
     let store = store::get_store(&app_handle);
@@ -36,6 +41,9 @@ pub async fn save_cached_data(
     }
     if let Some(v) = platform_usage {
         store.set("cached_platform_usage", v);
+    }
+    if let Some(v) = raw_records {
+        store.set("cache_raw_records", v);
     }
     if let Some(v) = last_updated {
         store.set("cache_last_updated", serde_json::Value::String(v));
@@ -57,6 +65,7 @@ pub async fn get_cached_data(app_handle: AppHandle) -> Result<Option<CachedData>
         model_usage: store.get("cache_model_usage"),
         monthly_cost: store.get("cache_monthly_cost"),
         platform_usage: store.get("cached_platform_usage"),
+        raw_records: store.get("cache_raw_records"),
         last_updated: store
             .get("cache_last_updated")
             .and_then(|v| v.as_str().map(|s| s.to_string())),
@@ -73,6 +82,7 @@ pub async fn clear_cache(app_handle: AppHandle) -> Result<bool, String> {
     store.delete("cache_model_usage");
     store.delete("cache_monthly_cost");
     store.delete("cached_platform_usage");
+    store.delete("cache_raw_records");
     store.delete("cache_last_updated");
     let _ = store.save();
     Ok(true)

@@ -2,58 +2,54 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import type {
   AppState,
+  DataSource,
   DailyUsage,
   MonthlyCost,
-  NormalizedUsage,
+  RawUsageRecord,
 } from "../types";
 import { useSettingsStore } from "./useSettingsStore";
+import { aggregateUsage, filterByDataSource } from "../utils/usageAggregate";
 
-function hasMeaningfulUsage(usage: NormalizedUsage | null | undefined): boolean {
-  if (!usage) return false;
-  return (
-    usage.models.length > 0 ||
-    usage.daily.some((d) => d.total_tokens > 0 || d.cost > 0) ||
-    usage.monthly.total_cost > 0 ||
-    (usage.monthly.total_tokens ?? 0) > 0
-  );
+function emptyUsage() {
+  return {
+    daily: [] as DailyUsage[],
+    models: [] as DailyUsage[],
+    monthly: {
+      total_cost: 0,
+      currency: "USD",
+      month: new Date().toISOString().slice(0, 7),
+      total_tokens: 0,
+      request_count: 0,
+    },
+    has_daily_granularity: false,
+  };
 }
 
-function applyUsageToUpdates(
-  usage: NormalizedUsage,
-  updates: Partial<AppState>,
-): void {
-  updates.dailyUsage = usage.daily;
-  updates.modelUsage = usage.models;
-  updates.usageCurrency = usage.monthly.currency || "USD";
-  updates.hasDailyGranularity = usage.has_daily_granularity;
-  updates.hasUsageData = true;
-  updates.usageSource = "local";
-
-  if (
-    usage.monthly.total_cost > 0 ||
-    (usage.monthly.total_tokens ?? 0) > 0
-  ) {
-    updates.monthlyCost = {
-      total_cost: usage.monthly.total_cost,
-      currency: usage.monthly.currency,
-      month: usage.monthly.month,
-      request_count: usage.monthly.request_count,
-    };
-  } else if (usage.models.some((m) => m.total_tokens > 0 || m.cost > 0)) {
-    updates.monthlyCost = {
-      total_cost: usage.models.reduce((s, m) => s + m.cost, 0),
-      currency: usage.monthly.currency,
-      month: usage.monthly.month,
-      request_count:
-        usage.monthly.request_count ??
-        usage.models.reduce((s, m) => s + (m.request_count ?? 0), 0),
-    };
-  } else {
-    updates.monthlyCost = null;
-  }
+function applyUsageToUpdates(usage: ReturnType<typeof aggregateUsage>) {
+  return {
+    dailyUsage: usage.daily,
+    modelUsage: usage.models,
+    usageCurrency: usage.monthly.currency || "USD",
+    hasDailyGranularity: usage.has_daily_granularity,
+    hasUsageData:
+      usage.models.length > 0 ||
+      usage.daily.some((d) => d.total_tokens > 0 || d.cost > 0) ||
+      usage.monthly.total_cost > 0 ||
+      (usage.monthly.total_tokens ?? 0) > 0,
+    monthlyCost: usage.monthly.total_cost > 0 || (usage.monthly.total_tokens ?? 0) > 0
+      ? ({
+          total_cost: usage.monthly.total_cost,
+          currency: usage.monthly.currency,
+          month: usage.monthly.month,
+          request_count: usage.monthly.request_count,
+          total_tokens: usage.monthly.total_tokens,
+        } as MonthlyCost)
+      : null,
+  };
 }
 
 export const useAppStore = create<AppState>((set) => ({
+  rawRecords: [],
   dailyUsage: [],
   modelUsage: [],
   monthlyCost: null,
@@ -78,23 +74,40 @@ export const useAppStore = create<AppState>((set) => ({
   fetchData: async () => {
     set({ loading: true, error: null });
     try {
-      const ds = useSettingsStore.getState().dataSource;
-      await invoke("silent_refresh", { dataSource: ds });
+      // 始终拉全量原始记录；dataSource 完全在前端处理
+      await invoke("silent_refresh");
     } catch (err) {
       set({ error: String(err), loading: false });
     }
   },
 
-  applySilentRefresh: (payload: { usage?: NormalizedUsage | null }) => {
-    const updates: Partial<AppState> = {
+  applySilentRefresh: (payload) => {
+    const records = payload.raw_records ?? [];
+    // 用当前 dataSource 算一次默认聚合，存到 store（让老组件 / 兜底组件能读）
+    const ds = useSettingsStore.getState().dataSource;
+    const usage = records.length > 0
+      ? aggregateUsage(filterByDataSource(records, ds))
+      : emptyUsage();
+    set({
+      rawRecords: records,
       lastUpdated: new Date().toISOString(),
       loading: false,
       error: null,
-    };
-    if (hasMeaningfulUsage(payload.usage)) {
-      applyUsageToUpdates(payload.usage!, updates);
-    }
-    set(updates as AppState);
+      usageSource: "local",
+      ...applyUsageToUpdates(usage),
+    });
+  },
+
+  /** 不重新拉数据，仅按指定 dataSource 重算聚合（切换瞬时生效） */
+  recomputeForDataSource: (ds: DataSource) => {
+    const { rawRecords } = useAppStore.getState();
+    const usage = rawRecords.length > 0
+      ? aggregateUsage(filterByDataSource(rawRecords, ds))
+      : emptyUsage();
+    set({
+      ...applyUsageToUpdates(usage),
+      lastUpdated: new Date().toISOString(),
+    });
   },
 
   setDailyUsage: (usage) => set({ dailyUsage: usage }),
@@ -110,16 +123,23 @@ export const useAppStore = create<AppState>((set) => ({
         daily_usage: DailyUsage[] | null;
         model_usage: DailyUsage[] | null;
         monthly_cost: MonthlyCost | null;
-        platform_usage: NormalizedUsage | null;
+        platform_usage: unknown;
+        raw_records: RawUsageRecord[] | null;
         last_updated: string | null;
       } | null>("get_cached_data");
 
-      const platformFromCache =
-        cached?.platform_usage && hasMeaningfulUsage(cached.platform_usage)
-          ? cached.platform_usage
-          : null;
-
-      if (cached) {
+      if (cached?.raw_records && cached.raw_records.length > 0) {
+        const ds = useSettingsStore.getState().dataSource;
+        const filtered = filterByDataSource(cached.raw_records, ds);
+        const usage = aggregateUsage(filtered);
+        set({
+          rawRecords: cached.raw_records,
+          lastUpdated: cached.last_updated ?? null,
+          usageSource: "local",
+          ...applyUsageToUpdates(usage),
+        });
+      } else if (cached) {
+        // 兼容旧缓存（只有聚合数据、没有 raw_records）
         const monthly =
           cached.monthly_cost && cached.monthly_cost.total_cost > 0
             ? cached.monthly_cost
@@ -130,23 +150,16 @@ export const useAppStore = create<AppState>((set) => ({
           models.some((m) => m.total_tokens > 0 || m.cost > 0) ||
           daily.some((d) => d.total_tokens > 0 || d.cost > 0) ||
           (monthly?.total_cost ?? 0) > 0;
-
-        if (platformFromCache) {
-          set({
-            ...applyUsageToState(platformFromCache),
-            lastUpdated: cached.last_updated ?? null,
-            usageUnavailable: true,
-          });
-        } else {
-          set({
-            dailyUsage: daily,
-            modelUsage: models,
-            monthlyCost: monthly,
-            lastUpdated: cached.last_updated ?? null,
-            hasUsageData: hasCachedUsage,
-            usageUnavailable: true,
-          });
-        }
+        set({
+          rawRecords: [],
+          dailyUsage: daily,
+          modelUsage: models,
+          monthlyCost: monthly,
+          lastUpdated: cached.last_updated ?? null,
+          hasUsageData: hasCachedUsage,
+          usageUnavailable: true,
+          usageSource: "local",
+        });
       }
     } catch {
       // 缓存不是必须的
@@ -170,9 +183,3 @@ export const useAppStore = create<AppState>((set) => ({
       settings: { ...state.settings, ...newSettings },
     })),
 }));
-
-function applyUsageToState(usage: NormalizedUsage): Partial<AppState> {
-  const updates: Partial<AppState> = {};
-  applyUsageToUpdates(usage, updates);
-  return updates;
-}

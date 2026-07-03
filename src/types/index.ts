@@ -3,6 +3,20 @@
 /** 数据源选项 */
 export type DataSource = "opencode" | "claude";
 
+/** 来自后端的原始用量记录（带 provider_id） */
+export interface RawUsageRecord {
+  timestamp: string;
+  model: string;
+  input_tokens: number;
+  cache_read_tokens: number;
+  cache_creation_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  request_count: number;
+  cost: number;
+  provider_id?: string;
+}
+
 /** 每日用量 */
 export interface DailyUsage {
   date: string;
@@ -46,6 +60,7 @@ export interface CachedData {
   model_usage: DailyUsage[] | null;
   monthly_cost: MonthlyCost | null;
   platform_usage: NormalizedUsage | null;
+  raw_records: RawUsageRecord[] | null;
   last_updated: string | null;
 }
 
@@ -64,7 +79,9 @@ export interface AppSettings {
 
 /** 应用状态 */
 export interface AppState {
-  // 数据
+  // 数据（后端原始记录，前端按 dataSource 过滤 + 聚合）
+  rawRecords: RawUsageRecord[];
+  // 预聚合数据（最后一次过滤 + 聚合的结果，用于未走 useMemo 路径的旧组件）
   dailyUsage: DailyUsage[];
   modelUsage: DailyUsage[];
   monthlyCost: MonthlyCost | null;
@@ -84,7 +101,8 @@ export interface AppState {
 
   // 操作
   fetchData: () => Promise<void>;
-  applySilentRefresh: (payload: { usage?: NormalizedUsage | null }) => void;
+  applySilentRefresh: (payload: { raw_records?: RawUsageRecord[] | null }) => void;
+  recomputeForDataSource: (ds: DataSource) => void;
   setDailyUsage: (usage: DailyUsage[]) => void;
   setModelUsage: (usage: DailyUsage[]) => void;
   setMonthlyCost: (cost: MonthlyCost) => void;
