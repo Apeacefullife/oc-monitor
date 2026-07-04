@@ -35,7 +35,7 @@ Track **OpenCode / Claude Code** token usage, model distribution and cost trends
 
 | Module | Description |
 | :--- | :--- |
-| **Dual data sources** | Reads Claude Code JSONL logs from `~/.claude/projects/` **and** the active OpenCode provider records from `~/.cc-switch/cc-switch.db` |
+| **Dual data sources** | Reads Claude Code JSONL logs from `~/.claude/projects/` **and** all CCSwitch records from `~/.cc-switch/cc-switch.db`; the active "Data source" toggle on the panel picks which to show |
 | **Token stats** | Live aggregation of Input / Cache-Read / Cache-Creation / Output tokens with per-model breakdown |
 | **Cost trends** | Daily & monthly spend, 7-day cost trend chart (hover for details) |
 | **AI analysis** | Cache hit rate, token composition, 7-day trend, one-click AI usage report |
@@ -47,14 +47,16 @@ Track **OpenCode / Claude Code** token usage, model distribution and cost trends
 
 ## What data does it read?
 
-OC-Monitor parses your OpenCode / Claude Code usage **entirely on-device**. It never modifies any source files.
+OC-Monitor parses your OpenCode / Claude Code usage **entirely on-device**. It never modifies any source files. The backend pulls from **two sources**, merges them, and the frontend filters by the "Data source" toggle in Settings.
 
-| Source | Path | Content |
-| :--- | :--- | :--- |
-| Claude Code JSONL | `~/.claude/projects/**/*.jsonl` | The `usage` field of assistant messages (input / cache_read / cache_creation / output tokens, model, timestamp) |
-| CCSwitch SQLite | `~/.cc-switch/cc-switch.db` | The `proxy_request_logs` table, filtered to the active provider for the current `app_type` (default: `_opencode_session`) |
+| Source | Path | What it contains | Toggle to use |
+| :--- | :--- | :--- | :--- |
+| CCSwitch SQLite | `~/.cc-switch/cc-switch.db` | All rows of the `proxy_request_logs` table (every `provider_id`) | **OpenCode** — shows only rows with `provider_id = "_opencode_session"` |
+| Claude Code JSONL | `~/.claude/projects/**/*.jsonl` | Messages with `type=assistant` and `message.role=assistant`, reading the `usage` block (input / cache_read / cache_creation / output tokens, model, timestamp); tagged with `provider_id = "_claude_log"` | **Claude Code** — covers usage from running Claude Code CLI directly against **any** endpoint (DeepSeek, OpenCode Go, Anthropic, etc.) |
 
 Read-only. Works fully offline.
+
+Switching the "Data source" toggle is **a pure-frontend operation** (instant) — no disk re-read, no backend invocation.
 
 ---
 

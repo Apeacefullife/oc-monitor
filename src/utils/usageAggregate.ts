@@ -78,11 +78,12 @@ export function filterByDataSource(
 ): RawUsageRecord[] {
   switch (dataSource) {
     case "opencode":
+      // OpenCode 经 CCSwitch 调用的所有模型用量
       return records.filter((r) => r.provider_id === "_opencode_session");
     case "claude":
-      return records.filter((r) =>
-        (r.provider_id ?? "").toLowerCase().includes("claude"),
-      );
+      // Claude Code CLI 直接调任意 endpoint（DeepSeek / OpenCode Go / Anthropic）的用量
+      // 这些记录只写 ~/.claude/projects/**/*.jsonl，provider_id 由后端标记为 "_claude_log"
+      return records.filter((r) => r.provider_id === "_claude_log");
   }
 }
 

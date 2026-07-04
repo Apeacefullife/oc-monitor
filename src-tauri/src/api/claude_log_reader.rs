@@ -32,7 +32,8 @@ pub struct TokenUsageRecord {
     pub request_count: u64,
     /// 计算费用（USD）
     pub cost: f64,
-    /// 来源 provider 标识（CCSwitch 用），JSONL 数据时为 "_claude_session"
+    /// 来源 provider 标识。
+    /// JSONL 数据时固定为 `"_claude_log"`，方便前端按 dataSource 过滤。
     #[serde(default)]
     pub provider_id: String,
 }
@@ -171,7 +172,7 @@ fn try_parse_line(line: &str) -> Option<TokenUsageRecord> {
         total_tokens,
         request_count: 1,
         cost,
-        provider_id: "_claude_session".to_string(),
+        provider_id: "_claude_log".to_string(),
     })
 }
 

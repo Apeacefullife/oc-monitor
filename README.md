@@ -47,14 +47,16 @@ Windows 轻量级桌面监控工具，常驻系统托盘。
 
 ## 它读取什么数据？
 
-OC-Monitor **完全在本地**解析你的 OpenCode / Claude Code 用量，不修改任何源文件。
+OC-Monitor **完全在本地**解析你的 OpenCode / Claude Code 用量，不修改任何源文件。后端**两路并拉**、合并后给前端，前端按设置里的"数据来源"切显示。
 
-| 来源 | 路径 | 内容 |
-| :--- | :--- | :--- |
-| Claude Code JSONL | `~/.claude/projects/**/*.jsonl` | assistant 消息中的 `usage` 字段（input / cache_read / cache_creation / output tokens、模型、时间戳） |
-| CCSwitch SQLite | `~/.cc-switch/cc-switch.db` | `proxy_request_logs` 表，自动筛选 `app_type` 下当前激活的 provider（默认 `_opencode_session`） |
+| 来源 | 路径 | 包含什么 | 适用"数据来源" |
+| :--- | :--- | :--- | :--- |
+| CCSwitch SQLite | `~/.cc-switch/cc-switch.db` | `proxy_request_logs` 表的**全部**记录（含所有 provider_id） | **OpenCode** —— 只看 `provider_id = "_opencode_session"` 的部分 |
+| Claude Code JSONL | `~/.claude/projects/**/*.jsonl` | `type=assistant` + `message.role=assistant` + `message.usage`（input / cache_read / cache_creation / output tokens、模型、时间戳），后端标记为 `provider_id = "_claude_log"` | **Claude Code** —— 覆盖**直接用 Claude Code CLI 调任意 endpoint**（DeepSeek / OpenCode Go / Anthropic）的用量 |
 
 读取过程只读不改，断网环境下同样工作。
+
+设置里切换"数据来源"是**纯前端操作**（瞬时），不重新读盘也不重新 invoke 后端。
 
 ---
 
