@@ -8,20 +8,20 @@
 
 **A lightweight, transparent desktop monitor for OpenCode / Claude Code token usage**
 
-Real-time token tracking · model breakdown · cost trends · AI insights
+Dual data sources · one-click data-source switch · real-time trends · AI insights
 
 <br />
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Apeacefullife%2Foc--monitor-181717?logo=github)](https://github.com/Apeacefullife/oc-monitor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://github.com/Apeacefullife/oc-monitor)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://github.com/Apeacefullife/oc-monitor)
 [![Tauri](https://img.shields.io/badge/Built%20with-Tauri%202-FFC131?logo=tauri)](https://tauri.app/)
 [![React](https://img.shields.io/badge/UI-React%2019-61DAFB?logo=react)](https://react.dev/)
 
 <br />
 
 A lightweight Windows desktop app that lives in the system tray.  
-Track **OpenCode / Claude Code** token usage, model distribution and cost trends in real time, with one-click AI usage reports.
+Pulls from both `~/.claude/projects/` (Claude Code's own JSONL logs) and `~/.cc-switch/cc-switch.db` (CCSwitch proxy records). A **"Data source" toggle in Settings** lets you switch between the two views instantly — OpenCode mode, Claude Code mode (including Claude Code CLI pointed at DeepSeek / OpenCode Go / Anthropic). No disk re-read on switch.
 
 </div>
 
@@ -31,17 +31,33 @@ Track **OpenCode / Claude Code** token usage, model distribution and cost trends
 
 ---
 
+## Use cases
+
+| How you use your AI tools | What OC-Monitor will show |
+| :--- | :--- |
+| OpenCode CLI + CCSwitch proxy | Switch to **OpenCode** mode — all records with `provider_id = "_opencode_session"` in CCSwitch |
+| Claude Code CLI → Anthropic API | Switch to **Claude Code** mode — auto-reads from `~/.claude/projects/` JSONL |
+| Claude Code CLI + `ANTHROPIC_BASE_URL` pointing at DeepSeek / OpenCode Go / etc. | Switch to **Claude Code** mode — JSONL rows with `model=deepseek-chat` etc. are **fully tracked** (pricing table is built in) |
+| OpenCode + Claude Code used side by side | Toggle between data sources to compare the two side by side |
+
+> 💡 The two sources are **naturally de-duplicated** — CCSwitch rows are tagged `_opencode_session`, JSONL rows are tagged `_claude_log`. They never overlap.
+
+---
+
 ## Features
 
 | Module | Description |
 | :--- | :--- |
-| **Dual data sources** | Reads Claude Code JSONL logs from `~/.claude/projects/` **and** all CCSwitch records from `~/.cc-switch/cc-switch.db`; the active "Data source" toggle on the panel picks which to show |
-| **Token stats** | Live aggregation of Input / Cache-Read / Cache-Creation / Output tokens with per-model breakdown |
-| **Cost trends** | Daily & monthly spend, 7-day cost trend chart (hover for details) |
-| **AI analysis** | Cache hit rate, token composition, 7-day trend, one-click AI usage report |
+| **Dual data sources** | Backend pulls CCSwitch SQLite + Claude Code JSONL in one pass; frontend filters by dataSource toggle |
+| **Data source switch** | OpenCode / Claude Code toggle in Settings — **pure-frontend useMemo**, instant, no backend call |
+| **Token stats** | Full breakdown of Input / Cache-Read / Cache-Creation / Output tokens, per-model |
+| **Cost trends** | Today / month spend, 7-day cost trend chart with hoverable per-bar details |
+| **Cache hit rate** | Auto-computed hit rate with prompt-stability hints |
+| **AI analysis** | Hit-rate trend, token composition, 7-day curves, **one-click AI usage report** (uses your own API key) |
+| **Model filter** | Pick which models to show on the main panel, at least one required |
 | **Desktop UX** | Frameless acrylic UI, system tray, always-on-top, interaction lock, custom cursor |
-| **Local-first privacy** | All data parsed locally — **nothing is uploaded to third-party servers** |
-| **Settings** | Refresh interval, launch at startup, Chinese / English UI, clear all local data |
+| **Local-first privacy** | **Fully offline** — all data parsed on-device, **nothing is uploaded to any external server** |
+| **Settings** | Data source, model filter, refresh interval, launch at startup, Chinese / English UI, clear all local data |
 
 ---
 
@@ -141,21 +157,27 @@ Output: `src-tauri/target/release/bundle/`
 ## Usage
 
 ```
-① Launch OC-Monitor  →  ② Auto-scan local usage  →  ③ View dashboard  →  ④ Generate AI report
+① Launch OC-Monitor  →  ② Auto-scan local usage  →  ③ View dashboard  →  ④ Toggle data source  →  ⑤ Generate AI report
 ```
 
 1. **First launch**  
    OC-Monitor automatically scans `~/.claude/projects/` and `~/.cc-switch/`. No account setup required.
 
-2. **Daily use**  
+2. **Data source switch (the core feature)**  
+   - Settings → Data source → choose **OpenCode** / **Claude Code**  
+   - The dashboard numbers **update instantly**, no disk re-read, no spinner  
+   - **OpenCode mode** shows CCSwitch rows with `provider_id = "_opencode_session"`  
+   - **Claude Code mode** shows JSONL rows from `~/.claude/projects/**/*.jsonl` (covers Claude Code CLI against any endpoint)
+
+3. **Daily use**  
    - Dashboard: today's / this month's spend, per-model share, 7-day trend (hover bars for details)  
    - AI analysis: hit rate, cache breakdown, AI report  
    - Tray: close the window to keep running in the system tray; double-click or right-click to restore
 
-3. **Shortcuts**  
+4. **Shortcuts**  
    - Title bar: pin 📌, lock 🔒, minimize, close to tray  
    - Right-click menu: refresh, analysis, settings, hide to tray  
-   - Settings: refresh interval, auto-start, language
+   - Settings: data source, model filter, refresh interval, auto-start, language
 
 ---
 

@@ -8,20 +8,20 @@
 
 **轻量、透明的 OpenCode / Claude Code 用量桌面监控工具**
 
-实时查看 Token 用量、模型分布、消费趋势 · AI 智能分析报告
+两路数据源 · 多 provider 一键切换 · 实时趋势 · AI 智能分析
 
 <br />
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Apeacefullife%2Foc--monitor-181717?logo=github)](https://github.com/Apeacefullife/oc-monitor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://github.com/Apeacefullife/oc-monitor)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://github.com/Apeacefullife/oc-monitor)
 [![Tauri](https://img.shields.io/badge/Built%20with-Tauri%202-FFC131?logo=tauri)](https://tauri.app/)
 [![React](https://img.shields.io/badge/UI-React%2019-61DAFB?logo=react)](https://react.dev/)
 
 <br />
 
 Windows 轻量级桌面监控工具，常驻系统托盘。  
-实时掌握 **OpenCode / Claude Code** 的 Token 消耗、模型分布与消费趋势，一键生成 AI 用量报告。
+同时读 `~/.claude/projects/`（Claude Code 本地日志）和 `~/.cc-switch/cc-switch.db`（CCSwitch 代理记录），**设置里一键切"数据来源"**——OpenCode 模式、Claude Code 模式（包括直接调 DeepSeek / OpenCode Go 等第三方 endpoint）**瞬时切换**，不重新读盘。
 
 </div>
 
@@ -31,17 +31,33 @@ Windows 轻量级桌面监控工具，常驻系统托盘。
 
 ---
 
+## 适用场景
+
+| 你怎么用 AI 工具 | OC-Monitor 能看到啥 |
+| :--- | :--- |
+| OpenCode CLI + CCSwitch 代理 | 切到 **OpenCode** 模式，CCSwitch 里 `_opencode_session` 的全部用量 |
+| Claude Code CLI 直连 Anthropic | 切到 **Claude Code** 模式，自动从 `~/.claude/projects/` 读 JSONL |
+| Claude Code CLI + `ANTHROPIC_BASE_URL` 指向 DeepSeek / OpenCode Go 等 | 切到 **Claude Code** 模式，JSONL 里 `model=deepseek-chat` 等记录**全部能监测**（定价表已内置） |
+| OpenCode + Claude Code 混用 | 切换数据来源，对比两边用量 |
+
+> 💡 两路数据**天然不重复**：CCSwitch 记录标 `_opencode_session`，JSONL 记录标 `_claude_log`，互不干扰。
+
+---
+
 ## 功能亮点
 
 | 模块 | 说明 |
 | :--- | :--- |
-| **双数据源** | 同时读取 `~/.claude/projects/` 下 Claude Code 的 JSONL 日志，以及 `~/.cc-switch/cc-switch.db` 中当前激活的 OpenCode provider 记录 |
-| **Token 统计** | 实时聚合 Input / Cache-Read / Cache-Creation / Output Token，分模型占比 |
-| **消费趋势** | 当日消耗、本月消费、近 7 日消费趋势图，悬停查看明细 |
-| **AI 分析** | 缓存命中率、Token 构成、7 日趋势曲线、一键 AI 用量报告 |
+| **双数据源** | 后端并拉 CCSwitch SQLite + Claude Code JSONL，前端按 dataSource 选项过滤展示 |
+| **数据源切换** | 设置里 OpenCode / Claude Code 二选一，**纯前端 useMemo 重算**，瞬时无延迟 |
+| **Token 统计** | Input / Cache-Read / Cache-Creation / Output 全拆分，分模型占比 |
+| **消费趋势** | 当日消耗、本月消费、近 7 日趋势柱状图，悬停查看每根柱子明细 |
+| **缓存命中** | 自动算 cache hit rate，提示 prompt 结构是否稳定 |
+| **AI 分析** | 命中率趋势、Token 构成、7 日曲线，**一键 AI 用量报告**（走你自己的 API Key） |
+| **模型筛选** | 设置里勾选要在主面板显示的模型，至少保留一个 |
 | **桌面体验** | 无边框毛玻璃、系统托盘、窗口置顶、锁定防误触、自定义光标 |
-| **本地隐私** | 全部数据在本地解析，**不上传任何用量到第三方服务器** |
-| **个性设置** | 刷新间隔、开机自启、中英文切换、一键清除本地数据 |
+| **本地隐私** | **完全离线**运行，所有数据在本机解析，**不向任何外部服务器上传** |
+| **个性设置** | 数据源、刷新间隔、模型筛选、开机自启、中英文、一键清除本地数据 |
 
 ---
 
@@ -141,21 +157,27 @@ pnpm tauri build
 ## 使用指南
 
 ```
-① 启动 OC-Monitor  →  ② 自动扫描本地用量  →  ③ 主面板查看  →  ④ 一键 AI 报告
+① 启动 OC-Monitor  →  ② 自动扫描本地用量  →  ③ 主面板查看  →  ④ 切数据源对比  →  ⑤ 一键 AI 报告
 ```
 
 1. **首次启动**  
    OC-Monitor 自动扫描 `~/.claude/projects/` 和 `~/.cc-switch/` 下的数据，无需任何账号配置。
 
-2. **日常查看**  
+2. **数据源切换（核心功能）**  
+   - 设置 → 数据来源 → 选 **OpenCode** / **Claude Code**  
+   - 主面板数字**瞬时变化**，不重新读盘也不卡顿  
+   - **OpenCode 模式**看 CCSwitch 里 `_opencode_session` 记录  
+   - **Claude Code 模式**看 `~/.claude/projects/**/*.jsonl`（覆盖 Claude Code CLI 调任何 endpoint）
+
+3. **日常查看**  
    - 主面板：今日 / 本月消费、模型占比、近 7 日趋势（悬停柱子看明细）  
    - AI 分析：缓存命中率、Token 构成、AI 报告  
    - 托盘：关闭窗口后驻留托盘，双击或右键唤回
 
-3. **常用操作**  
+4. **常用操作**  
    - 标题栏：置顶 📌、锁定 🔒、最小化、关闭到托盘  
    - 右键菜单：刷新、打开分析/设置、隐藏到托盘  
-   - 设置：调整刷新间隔、开机自启、切换语言
+   - 设置：数据源、模型筛选、刷新间隔、开机自启、切换语言
 
 ---
 
