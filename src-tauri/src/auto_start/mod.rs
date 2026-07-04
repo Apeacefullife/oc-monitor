@@ -4,7 +4,14 @@
 /// `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`
 
 /// 注册开机自启
+///
+/// 仅允许 release 构建注册自启；dev 构建（依赖 vite dev server）拒绝，
+/// 避免把 target\debug\oc-monitor.exe 误写进 Run 导致开机起不来。
 pub fn enable() -> Result<(), String> {
+    if cfg!(debug_assertions) {
+        return Err("dev 构建不允许注册开机自启，请使用 pnpm tauri build 出的 release 版本".to_string());
+    }
+
     let exe_path = std::env::current_exe().map_err(|e| format!("获取程序路径失败: {}", e))?;
     let path_str = exe_path.to_string_lossy().to_string();
 
